@@ -6,18 +6,29 @@ export default function NaturalLanguageInput({ onCreate }: { onCreate: (data: Pa
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ParsedReminder | null>(null);
+  const [error, setError] = useState('');
 
   async function handleParse() {
     if (!text.trim()) return;
     setLoading(true);
-    const res = await fetch('/api/reminders/parse', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: text.trim() }),
-    });
-    const data = await res.json();
-    if (!data.error) setResult(data);
-    setLoading(false);
+    setError('');
+    try {
+      const res = await fetch('/api/reminders/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setError(data.error || '解析失败，请重试');
+      } else {
+        setResult(data);
+      }
+    } catch {
+      setError('网络错误，请重试');
+    } finally {
+      setLoading(false);
+    }
   }
 
   function handleConfirm() {
@@ -36,20 +47,23 @@ export default function NaturalLanguageInput({ onCreate }: { onCreate: (data: Pa
   return (
     <div className="mb-4">
       {!result ? (
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={text}
-            onChange={e => setText(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleParse()}
-            placeholder="如：明天上午10:00用招行尾号7321给李四转8000"
-            className="flex-1 border rounded-lg px-3 py-2"
-            autoFocus
-          />
-          <button onClick={handleParse} disabled={loading || !text.trim()}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg disabled:opacity-50">
-            {loading ? '解析中...' : '解析'}
-          </button>
+        <div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={text}
+              onChange={e => setText(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleParse()}
+              placeholder="如：明天上午10:00用招行尾号7321给李四转8000"
+              className="flex-1 border rounded-lg px-3 py-2"
+              autoFocus
+            />
+            <button onClick={handleParse} disabled={loading || !text.trim()}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg disabled:opacity-50">
+              {loading ? '解析中...' : '解析'}
+            </button>
+          </div>
+          {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
         </div>
       ) : (
         <div className="border rounded-xl p-4 bg-blue-50">
