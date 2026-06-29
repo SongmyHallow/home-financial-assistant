@@ -8,21 +8,27 @@ export default function IpoList() {
   const [watched, setWatched] = useState<string[]>([]);
   const [market, setMarket] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [watching, setWatching] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    fetchIpos();
+    const controller = new AbortController();
+    async function load() {
+      setLoading(true);
+      try {
+        const params = market !== 'all' ? `?market=${market}` : '';
+        const res = await fetch('/api/ipo' + params, { signal: controller.signal });
+        const data = await res.json();
+        if (Array.isArray(data)) setIpos(data);
+      } catch (err: any) {
+        if (err.name !== 'AbortError') console.error('IPO fetch failed:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
     fetchWatched();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => controller.abort();
   }, [market]);
-
-  async function fetchIpos() {
-    setLoading(true);
-    const params = market !== 'all' ? `?market=${market}` : '';
-    const res = await fetch('/api/ipo' + params);
-    const data = await res.json();
-    if (Array.isArray(data)) setIpos(data);
-    setLoading(false);
-  }
 
   async function fetchWatched() {
     const res = await fetch('/api/ipo/watch');
@@ -31,13 +37,23 @@ export default function IpoList() {
   }
 
   async function toggleWatch(ipoId: string) {
-    const method = watched.includes(ipoId) ? 'DELETE' : 'POST';
-    await fetch('/api/ipo/watch', {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ipo_id: ipoId }),
-    });
-    fetchWatched();
+    if (watching.has(ipoId)) return; // 防止重复点击
+    setWatching(prev => new Set(prev).add(ipoId));
+    try {
+      const method = watched.includes(ipoId) ? 'DELETE' : 'POST';
+      await fetch('/api/ipo/watch', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ipo_id: ipoId }),
+      });
+      await fetchWatched();
+    } finally {
+      setWatching(prev => {
+        const next = new Set(prev);
+        next.delete(ipoId);
+        return next;
+      });
+    }
   }
 
   if (loading) return <p className="text-gray-400">加载中...</p>;
@@ -68,6 +84,7 @@ export default function IpoList() {
               ipo={ipo}
               watched={watched.includes(ipo.id)}
               onToggleWatch={toggleWatch}
+              disabled={watching.has(ipo.id) ? 'opacity-50 cursor-wait' : ''}
             />
           ))}
         </div>

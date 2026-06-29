@@ -20,11 +20,11 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   const { ipo_id } = await request.json();
+  if (!ipo_id || typeof ipo_id !== 'string') {
+    return NextResponse.json({ error: '缺少有效的 ipo_id' }, { status: 400 });
+  }
   const supabase = createServiceClient();
-  const { error } = await supabase
-    .from('watched_ipos')
-    .delete()
-    .eq('ipo_id', ipo_id);
+  const { error } = await supabase.from('watched_ipos').delete().eq('ipo_id', ipo_id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }

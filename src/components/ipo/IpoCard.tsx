@@ -6,10 +6,12 @@ export default function IpoCard({
   ipo,
   watched,
   onToggleWatch,
+  disabled = '',
 }: {
   ipo: IpoListing;
   watched: boolean;
   onToggleWatch: (id: string) => void;
+  disabled?: string;
 }) {
   const router = useRouter();
   const deadline = new Date(ipo.subscription_deadline);
@@ -19,7 +21,7 @@ export default function IpoCard({
     const params = new URLSearchParams({
       template: '申购',
       title: `申购${ipo.company_name}`,
-      desc: `代码 ${ipo.subscription_code}，一手 ¥${ipo.lot_amount?.toLocaleString()}`,
+      desc: `代码 ${ipo.subscription_code}，一手 ¥${ipo.lot_amount?.toLocaleString() ?? '-'}`,
       deadline: ipo.subscription_deadline,
     });
     router.push(`/dashboard/reminders?${params.toString()}`);
@@ -51,7 +53,7 @@ export default function IpoCard({
         </div>
         <div>
           <span className="text-gray-500">一手:</span> ¥
-          {ipo.lot_amount?.toLocaleString()} ({ipo.lot_size}股)
+          {ipo.lot_amount?.toLocaleString() ?? '-'} ({ipo.lot_size}股)
         </div>
         <div>
           <span className="text-gray-500">保荐人:</span> {ipo.sponsor || '-'}
@@ -78,7 +80,7 @@ export default function IpoCard({
         </button>
         <button
           onClick={() => onToggleWatch(ipo.id)}
-          className="px-3 py-2 border rounded-lg text-sm"
+          className={`px-3 py-2 border rounded-lg text-sm ${disabled}`}
         >
           {watched ? '⭐' : '☆'}
         </button>

@@ -22,7 +22,8 @@ export async function fetchAllIpos() {
   const all = [...beijing, ...hk];
 
   for (const ipo of all) {
-    // 按 subscription_code 做 upsert，避免重复写入
+    // NOTE: onConflict uses subscription_code only. If the same code appears in both markets,
+    // rows will overwrite. A composite unique on (subscription_code, market) would fix this.
     const { error } = await supabase
       .from('ipo_listings')
       .upsert(
@@ -46,11 +47,12 @@ export async function fetchAllIpos() {
   }
 
   // 标记已过截止日期的为"已截止"
-  await supabase
+  const { error: expireError } = await supabase
     .from('ipo_listings')
     .update({ status: '已截止' })
     .eq('status', '进行中')
     .lt('subscription_deadline', new Date().toISOString());
+  if (expireError) console.error('IPO expiry update failed:', expireError);
 
   return all.length;
 }
