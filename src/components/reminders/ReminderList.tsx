@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import type { Reminder, TemplateType } from '@/lib/types';
 import ReminderForm from './ReminderForm';
 import TemplatePicker from './TemplatePicker';
+import NaturalLanguageInput from './NaturalLanguageInput';
 
 export default function ReminderList({ prefill }: { prefill?: Record<string, string> }) {
   const [reminders, setReminders] = useState<Reminder[]>([]);
@@ -73,6 +74,17 @@ export default function ReminderList({ prefill }: { prefill?: Record<string, str
         }}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">＋ 新建</button>
       </div>
+
+      {!showTemplate && !editing && (
+        <NaturalLanguageInput onCreate={async (data) => {
+          const res = await fetch('/api/reminders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+          });
+          if (res.ok) fetchReminders();
+        }} />
+      )}
 
       {showTemplate && !prefill && (
         <div className="mb-4">
