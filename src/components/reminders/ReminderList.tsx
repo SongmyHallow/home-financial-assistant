@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import type { Reminder } from '@/lib/types';
+import type { Reminder, TemplateType } from '@/lib/types';
 import ReminderForm from './ReminderForm';
 import TemplatePicker from './TemplatePicker';
 
@@ -10,7 +10,12 @@ export default function ReminderList({ prefill }: { prefill?: Record<string, str
   const [editing, setEditing] = useState<Partial<Reminder> | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { fetchReminders(); }, [prefill]);
+  useEffect(() => {
+    fetchReminders();
+    if (prefill && Object.keys(prefill).length > 0) {
+      setEditing({ template_type: (prefill.template || '自定义') as TemplateType });
+    }
+  }, [prefill]);
 
   async function fetchReminders() {
     const res = await fetch('/api/reminders');
@@ -59,7 +64,13 @@ export default function ReminderList({ prefill }: { prefill?: Record<string, str
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">🔔 提醒管理</h2>
-        <button onClick={() => setShowTemplate(!showTemplate)}
+        <button onClick={() => {
+          if (prefill && Object.keys(prefill).length > 0) {
+            setEditing({ template_type: (prefill.template || '自定义') as TemplateType });
+          } else {
+            setShowTemplate(!showTemplate);
+          }
+        }}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">＋ 新建</button>
       </div>
 

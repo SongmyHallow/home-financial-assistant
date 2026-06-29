@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   const body = await request.json();
+  if (!body.id) return NextResponse.json({ error: '缺少 id' }, { status: 400 });
   const supabase = createServiceClient();
   const { data, error } = await supabase.from('reminders').update({
     title: body.title,
@@ -47,6 +48,7 @@ export async function DELETE(request: NextRequest) {
   const id = searchParams.get('id');
   if (!id) return NextResponse.json({ error: '缺少 id' }, { status: 400 });
   const supabase = createServiceClient();
-  await supabase.from('reminders').delete().eq('id', id);
+  const { error } = await supabase.from('reminders').delete().eq('id', id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }
