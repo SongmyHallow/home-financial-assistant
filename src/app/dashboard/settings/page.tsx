@@ -1,4 +1,6 @@
 import AccountManager from '@/components/settings/AccountManager';
+import PushSettings from '@/components/settings/PushSettings';
+import DataManager from '@/components/settings/DataManager';
 
 export default function SettingsPage() {
   return (
@@ -7,7 +9,12 @@ export default function SettingsPage() {
       <section className="mb-6">
         <AccountManager />
       </section>
-      {/* 后续 Task 加入推送设置和数据管理 */}
+      <section className="mb-6">
+        <PushSettings />
+      </section>
+      <section className="mb-6">
+        <DataManager />
+      </section>
     </div>
   );
 }
