@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Account, Transaction, TransactionCategory } from '@/lib/types';
 import TransactionForm from './TransactionForm';
+import Charts from './Charts';
 
 const CATEGORIES: TransactionCategory[] = ['打新', '转账入金', '新股收益', '消费', '利息/分红', '其他'];
 
@@ -117,6 +118,9 @@ export default function TransactionList() {
           ))}
         </select>
       </div>
+
+      {/* 图表看板 */}
+      <Charts transactions={transactions} />
 
       {/* 月度汇总 */}
       <div className="grid grid-cols-3 gap-2 mb-4 text-center">
