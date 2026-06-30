@@ -1,16 +1,59 @@
 import { createServiceClient } from './supabase';
 import type { IpoListing } from './types';
 
-// 北交所新股申购公告页（示例 URL，实际以可用数据源为准）
+const EASTMONEY_API = 'https://datacenter-web.eastmoney.com/api/data/v1/get';
+
+// 市场代码映射
+const MARKET_MAP: Record<string, string> = {
+  '北交所': '北交所',
+  '深交所创业板': '深市',
+  '深交所主板': '深市',
+  '上交所科创板': '沪市',
+  '上交所主板': '沪市',
+};
+
 async function fetchBeijingIpos(): Promise<Partial<IpoListing>[]> {
-  // 基于公开页面抓取，返回结构统一的数组
-  // TODO：连接真实数据源后替换占位实现
-  return [];
+  try {
+    // 北交所 SECURITY_TYPE_CODE = "65800101"
+    const params = new URLSearchParams({
+      reportName: 'RPTA_APP_IPOAPPLY',
+      columns: 'ALL',
+      sortColumns: 'APPLY_DATE',
+      sortTypes: '-1',
+      pageSize: '20',
+      pageNumber: '1',
+      filter: '(SECURITY_TYPE_CODE="65800101")',
+    });
+    const res = await fetch(`${EASTMONEY_API}?${params.toString()}`, {
+      headers: { 'Referer': 'https://data.eastmoney.com/' },
+    });
+    const json = await res.json();
+    if (!json.success || !json.result?.data) return [];
+
+    return json.result.data
+      .filter((item: any) => item.APPLY_DATE && new Date(item.APPLY_DATE) >= new Date())
+      .map((item: any) => ({
+        market: '北交所' as const,
+        company_name: item.SECURITY_NAME,
+        subscription_code: item.APPLY_CODE || item.SECURITY_CODE,
+        price_low: item.ISSUE_PRICE || null,
+        price_high: item.ISSUE_PRICE || null,
+        lot_size: 100,
+        lot_amount: item.ISSUE_PRICE ? Math.round(item.ISSUE_PRICE * 100) : null,
+        sponsor: item.MAIN_UNDERWRITER || null,
+        industry: item.INDUSTRY_NAME || null,
+        subscription_deadline: item.APPLY_DATE ? `${item.APPLY_DATE.slice(0, 10)}T15:00:00.000Z` : null,
+        expected_listing_date: item.LISTING_DATE?.slice(0, 10) || null,
+        status: '进行中' as const,
+      }));
+  } catch (e) {
+    console.error('北交所 IPO fetch failed:', e);
+    return [];
+  }
 }
 
-// 港股新股（示例：捷利交易宝公开页面）
 async function fetchHKIpos(): Promise<Partial<IpoListing>[]> {
-  // TODO：连接真实数据源后替换占位实现
+  // 港股需要额外的数据源，暂时返回空
   return [];
 }
 
@@ -21,19 +64,19 @@ export async function fetchAllIpos() {
   const hk = await fetchHKIpos();
   const all = [...beijing, ...hk];
 
+  let inserted = 0;
   for (const ipo of all) {
-    // NOTE: onConflict uses subscription_code only. If the same code appears in both markets,
-    // rows will overwrite. A composite unique on (subscription_code, market) would fix this.
+    if (!ipo.subscription_code || !ipo.company_name) continue;
     const { error } = await supabase
       .from('ipo_listings')
       .upsert(
         {
-          market: ipo.market!,
-          company_name: ipo.company_name!,
-          subscription_code: ipo.subscription_code!,
+          market: ipo.market || '北交所',
+          company_name: ipo.company_name,
+          subscription_code: ipo.subscription_code,
           price_low: ipo.price_low,
           price_high: ipo.price_high,
-          lot_size: ipo.lot_size,
+          lot_size: ipo.lot_size || 100,
           lot_amount: ipo.lot_amount,
           sponsor: ipo.sponsor,
           industry: ipo.industry,
@@ -43,7 +86,8 @@ export async function fetchAllIpos() {
         },
         { onConflict: 'subscription_code' }
       );
-    if (error) console.error('IPO upsert error:', error);
+    if (!error) inserted++;
+    else console.error('IPO upsert error:', error);
   }
 
   // 标记已过截止日期的为"已截止"
@@ -54,5 +98,5 @@ export async function fetchAllIpos() {
     .lt('subscription_deadline', new Date().toISOString());
   if (expireError) console.error('IPO expiry update failed:', expireError);
 
-  return all.length;
+  return inserted;
 }
