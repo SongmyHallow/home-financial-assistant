@@ -59,7 +59,7 @@ export default function ReminderList({ prefill }: { prefill?: Record<string, str
   const futureReminders = reminders.filter(r => r.status === '待执行' && r.trigger_time.slice(0, 10) > today);
   const doneReminders = reminders.filter(r => r.status !== '待执行');
 
-  if (loading) return <p className="text-gray-400">加载中...</p>;
+  if (loading) return <p className="text-[var(--color-muted-light)]">加载中...</p>;
 
   return (
     <div>
@@ -72,7 +72,7 @@ export default function ReminderList({ prefill }: { prefill?: Record<string, str
             setShowTemplate(!showTemplate);
           }
         }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">＋ 新建</button>
+          className="bg-[var(--color-accent)] text-white px-4 py-2 rounded-lg text-sm">＋ 新建</button>
       </div>
 
       {!showTemplate && !editing && (
@@ -88,7 +88,7 @@ export default function ReminderList({ prefill }: { prefill?: Record<string, str
 
       {showTemplate && !prefill && (
         <div className="mb-4">
-          <p className="text-sm text-gray-500 mb-2">选择提醒类型：</p>
+          <p className="text-sm text-[var(--color-muted)] mb-2">选择提醒类型：</p>
           <TemplatePicker onSelect={(type) => {
             setEditing({ template_type: type });
             setShowTemplate(false);
@@ -110,9 +110,9 @@ export default function ReminderList({ prefill }: { prefill?: Record<string, str
       {!editing && !showTemplate && (
         <>
           <section className="mb-6">
-            <h3 className="font-semibold text-red-500 mb-2">🔴 今天待执行 ({todayReminders.length})</h3>
+            <h3 className="font-semibold text-[var(--color-danger)] mb-2">🔴 今天待执行 ({todayReminders.length})</h3>
             {todayReminders.length === 0 ? (
-              <p className="text-gray-400 text-sm">暂无</p>
+              <p className="text-[var(--color-muted-light)] text-sm">暂无</p>
             ) : todayReminders.map(r => (
               <ReminderRow key={r.id} reminder={r} onComplete={handleComplete} onDelete={handleDelete} onEdit={setEditing} />
             ))}
@@ -127,7 +127,7 @@ export default function ReminderList({ prefill }: { prefill?: Record<string, str
 
           {doneReminders.length > 0 && (
             <details>
-              <summary className="font-semibold text-gray-400 cursor-pointer mb-2">✅ 已完成 ({doneReminders.length})</summary>
+              <summary className="font-semibold text-[var(--color-muted-light)] cursor-pointer mb-2">✅ 已完成 ({doneReminders.length})</summary>
               {doneReminders.map(r => (
                 <ReminderRow key={r.id} reminder={r} onComplete={handleComplete} onDelete={handleDelete} onEdit={setEditing} />
               ))}
@@ -150,13 +150,13 @@ function ReminderRow({ reminder, onComplete, onDelete, onEdit }: {
 
   return (
     <div className={`flex items-center justify-between py-2 px-3 my-1 rounded-lg ${
-      reminder.status !== '待执行' ? 'bg-gray-100 opacity-50' : 'bg-white border'
+      reminder.status !== '待执行' ? 'bg-[var(--color-surface-hover)] opacity-50' : 'bg-[var(--color-surface)] border'
     }`}>
       <div className="flex items-center gap-2 flex-1 min-w-0">
         <span>{icon}</span>
         <div className="truncate">
           <p className="font-medium text-sm truncate">{reminder.title}</p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-[var(--color-muted)]">
             {triggerDate.toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
             {reminder.repeat_type !== '一次' && ` · ${reminder.repeat_type}`}
           </p>
@@ -164,9 +164,9 @@ function ReminderRow({ reminder, onComplete, onDelete, onEdit }: {
       </div>
       {reminder.status === '待执行' && (
         <div className="flex gap-1 ml-2 shrink-0">
-          <button onClick={() => onComplete(reminder.id)} className="text-green-600 text-xs">完成</button>
-          <button onClick={() => onEdit(reminder)} className="text-blue-600 text-xs">编辑</button>
-          <button onClick={() => onDelete(reminder.id)} className="text-gray-400 text-xs">删</button>
+          <button onClick={() => onComplete(reminder.id)} className="text-[var(--color-success)] text-xs">完成</button>
+          <button onClick={() => onEdit(reminder)} className="text-[var(--color-accent)] text-xs">编辑</button>
+          <button onClick={() => onDelete(reminder.id)} className="text-[var(--color-muted-light)] text-xs">删</button>
         </div>
       )}
     </div>

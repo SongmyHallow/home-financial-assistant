@@ -51,7 +51,7 @@ export default function Charts({ transactions }: { transactions: Transaction[] }
 
   return (
     <div className="space-y-4 mb-4">
-      <details open className="bg-white rounded-xl p-4 border">
+      <details open className="bg-[var(--color-surface)] rounded-xl p-4 border">
         <summary className="font-semibold cursor-pointer">📊 图表看板</summary>
         <div className="mt-3 grid md:grid-cols-2 gap-4">
           <ReactECharts option={waterFallOption} style={{ height: 300 }} />

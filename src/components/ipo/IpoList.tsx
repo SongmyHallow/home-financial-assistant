@@ -3,10 +3,12 @@ import { useState, useEffect } from 'react';
 import type { IpoListing } from '@/lib/types';
 import IpoCard from './IpoCard';
 
+const MARKET_FILTERS = ['全部', '北交所', '港股'] as const;
+
 export default function IpoList() {
   const [ipos, setIpos] = useState<IpoListing[]>([]);
   const [watched, setWatched] = useState<string[]>([]);
-  const [market, setMarket] = useState<string>('all');
+  const [market, setMarket] = useState<string>('全部');
   const [loading, setLoading] = useState(true);
   const [watching, setWatching] = useState<Set<string>>(new Set());
 
@@ -15,7 +17,7 @@ export default function IpoList() {
     async function load() {
       setLoading(true);
       try {
-        const params = market !== 'all' ? `?market=${market}` : '';
+        const params = market !== '全部' ? `?market=${market}` : '';
         const res = await fetch('/api/ipo' + params, { signal: controller.signal });
         const data = await res.json();
         if (Array.isArray(data)) setIpos(data);
@@ -37,7 +39,7 @@ export default function IpoList() {
   }
 
   async function toggleWatch(ipoId: string) {
-    if (watching.has(ipoId)) return; // 防止重复点击
+    if (watching.has(ipoId)) return;
     setWatching(prev => new Set(prev).add(ipoId));
     try {
       const method = watched.includes(ipoId) ? 'DELETE' : 'POST';
@@ -56,35 +58,52 @@ export default function IpoList() {
     }
   }
 
-  if (loading) return <p className="text-gray-400">加载中...</p>;
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2].map(i => (
+          <div key={i} className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] animate-pulse">
+            <div className="h-4 w-20 bg-[var(--color-border)] rounded mb-3" />
+            <div className="h-5 w-40 bg-[var(--color-border)] rounded mb-2" />
+            <div className="h-3 w-24 bg-[var(--color-border-light)] rounded" />
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div>
-      <div className="flex gap-2 mb-4">
-        {['all', '北交所', '港股'].map((m) => (
+      <div className="flex gap-1.5 mb-4 bg-[var(--color-border-light)] rounded-xl p-1 w-fit">
+        {MARKET_FILTERS.map(m => (
           <button
             key={m}
             onClick={() => setMarket(m)}
-            className={`px-3 py-1 rounded-full text-sm ${
-              market === m ? 'bg-blue-600 text-white' : 'bg-gray-200'
+            className={`px-3.5 py-1.5 rounded-[10px] text-[13px] font-medium transition-all duration-150 ${
+              market === m
+                ? 'bg-[var(--color-surface)] text-[var(--color-foreground)] shadow-sm'
+                : 'text-[var(--color-muted)] hover:text-[var(--color-foreground)]'
             }`}
           >
-            {m === 'all' ? '全部' : m}
+            {m}
           </button>
         ))}
       </div>
 
       {ipos.length === 0 ? (
-        <p className="text-gray-400 text-center py-8">今日暂无新股申购</p>
+        <div className="text-center py-16">
+          <div className="text-4xl mb-3 opacity-30">📋</div>
+          <p className="text-[var(--color-muted)] text-sm">今日暂无新股申购</p>
+        </div>
       ) : (
-        <div className="space-y-4">
-          {ipos.map((ipo) => (
+        <div className="space-y-3">
+          {ipos.map(ipo => (
             <IpoCard
               key={ipo.id}
               ipo={ipo}
               watched={watched.includes(ipo.id)}
               onToggleWatch={toggleWatch}
-              disabled={watching.has(ipo.id) ? 'opacity-50 cursor-wait' : ''}
+              disabled={watching.has(ipo.id) ? 'opacity-50 pointer-events-none' : ''}
             />
           ))}
         </div>

@@ -59,25 +59,25 @@ export default function NaturalLanguageInput({ onCreate }: { onCreate: (data: Pa
               autoFocus
             />
             <button onClick={handleParse} disabled={loading || !text.trim()}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg disabled:opacity-50">
+              className="bg-[var(--color-accent)] text-white px-4 py-2 rounded-lg disabled:opacity-50">
               {loading ? '解析中...' : '解析'}
             </button>
           </div>
-          {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+          {error && <p className="text-[var(--color-danger)] text-sm mt-1">{error}</p>}
         </div>
       ) : (
         <div className="border rounded-xl p-4 bg-blue-50">
           <p className="text-sm text-blue-700 mb-1">📋 解析结果（{(result.confidence * 100).toFixed(0)}% 置信度）</p>
           <div className="grid grid-cols-2 gap-1 text-sm mb-3">
-            <div><span className="text-gray-500">标题:</span> {result.title}</div>
-            <div><span className="text-gray-500">类型:</span> {result.template_type}</div>
-            <div className="col-span-2"><span className="text-gray-500">时间:</span> {new Date(result.trigger_time).toLocaleString('zh-CN')}</div>
+            <div><span className="text-[var(--color-muted)]">标题:</span> {result.title}</div>
+            <div><span className="text-[var(--color-muted)]">类型:</span> {result.template_type}</div>
+            <div className="col-span-2"><span className="text-[var(--color-muted)]">时间:</span> {new Date(result.trigger_time).toLocaleString('zh-CN')}</div>
             {result.description !== result.title && (
-              <div className="col-span-2"><span className="text-gray-500">描述:</span> {result.description}</div>
+              <div className="col-span-2"><span className="text-[var(--color-muted)]">描述:</span> {result.description}</div>
             )}
           </div>
           <div className="flex gap-2">
-            <button onClick={handleConfirm} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">确认创建</button>
+            <button onClick={handleConfirm} className="bg-[var(--color-accent)] text-white px-4 py-2 rounded-lg text-sm">确认创建</button>
             <button onClick={() => setResult(null)} className="border px-4 py-2 rounded-lg text-sm">修改</button>
           </div>
         </div>

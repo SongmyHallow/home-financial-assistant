@@ -38,29 +38,29 @@ export default function AccountManager() {
     fetchAccounts();
   }
 
-  if (loading) return <p className="text-gray-400">加载中...</p>;
+  if (loading) return <p className="text-[var(--color-muted-light)]">加载中...</p>;
 
   return (
     <div>
       <h3 className="font-semibold mb-2">账户管理</h3>
       <ul className="space-y-2 mb-4">
         {accounts.map(acc => (
-          <li key={acc.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+          <li key={acc.id} className="flex items-center justify-between bg-[var(--color-background)] rounded-lg px-3 py-2">
             <div>
               <span className="font-medium">{acc.name}</span>
-              <span className="text-xs text-gray-500 ml-2">{acc.type}</span>
-              {acc.note && <span className="text-xs text-gray-400 ml-1">· {acc.note}</span>}
+              <span className="text-xs text-[var(--color-muted)] ml-2">{acc.type}</span>
+              {acc.note && <span className="text-xs text-[var(--color-muted-light)] ml-1">· {acc.note}</span>}
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setEditing(acc)} className="text-blue-600 text-sm">编辑</button>
-              <button onClick={() => handleDelete(acc.id)} className="text-red-500 text-sm">删除</button>
+              <button onClick={() => setEditing(acc)} className="text-[var(--color-accent)] text-sm">编辑</button>
+              <button onClick={() => handleDelete(acc.id)} className="text-[var(--color-danger)] text-sm">删除</button>
             </div>
           </li>
         ))}
       </ul>
 
       {editing ? (
-        <div className="border rounded-lg p-4 bg-white">
+        <div className="border rounded-lg p-4 bg-[var(--color-surface)]">
           <h4 className="font-medium mb-3">{editing.id ? '编辑账户' : '添加账户'}</h4>
           <input
             type="text" placeholder="名称（如 招行 7321）" value={editing.name || ''}
@@ -81,14 +81,14 @@ export default function AccountManager() {
             className="w-full border rounded px-3 py-2 mb-3"
           />
           <div className="flex gap-2">
-            <button onClick={handleSave} className="bg-blue-600 text-white px-4 py-2 rounded-lg">保存</button>
+            <button onClick={handleSave} className="bg-[var(--color-accent)] text-white px-4 py-2 rounded-lg">保存</button>
             <button onClick={() => setEditing(null)} className="border px-4 py-2 rounded-lg">取消</button>
           </div>
         </div>
       ) : (
         <button
           onClick={() => setEditing({ name: '', type: undefined, note: '' })}
-          className="text-blue-600 border border-blue-300 rounded-lg px-4 py-2 text-sm"
+          className="text-[var(--color-accent)] border border-blue-300 rounded-lg px-4 py-2 text-sm"
         >
           ＋ 添加账户
         </button>

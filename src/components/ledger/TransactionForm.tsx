@@ -59,11 +59,11 @@ export default function TransactionForm({
   const toAccounts = accounts.filter((a) => a.id !== fromId);
 
   return (
-    <form className="border rounded-xl p-4 bg-white space-y-3">
+    <form className="border rounded-xl p-4 bg-[var(--color-surface)] space-y-3">
       <h3 className="font-semibold">{editing?.id ? '编辑流水' : '✏ 记一笔'}</h3>
 
       <div>
-        <label className="text-sm text-gray-500">日期</label>
+        <label className="text-sm text-[var(--color-muted)]">日期</label>
         <input
           type="date"
           value={date}
@@ -74,7 +74,7 @@ export default function TransactionForm({
 
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="text-sm text-gray-500">从 *</label>
+          <label className="text-sm text-[var(--color-muted)]">从 *</label>
           <select
             value={fromId}
             onChange={(e) => setFromId(e.target.value)}
@@ -90,7 +90,7 @@ export default function TransactionForm({
           </select>
         </div>
         <div>
-          <label className="text-sm text-gray-500">到</label>
+          <label className="text-sm text-[var(--color-muted)]">到</label>
           <select
             value={toId}
             onChange={(e) => {
@@ -121,7 +121,7 @@ export default function TransactionForm({
 
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="text-sm text-gray-500">金额 *</label>
+          <label className="text-sm text-[var(--color-muted)]">金额 *</label>
           <input
             type="number"
             step="0.01"
@@ -133,7 +133,7 @@ export default function TransactionForm({
           />
         </div>
         <div>
-          <label className="text-sm text-gray-500">类别</label>
+          <label className="text-sm text-[var(--color-muted)]">类别</label>
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value as TransactionCategory)}
@@ -149,7 +149,7 @@ export default function TransactionForm({
       </div>
 
       <div>
-        <label className="text-sm text-gray-500">备注</label>
+        <label className="text-sm text-[var(--color-muted)]">备注</label>
         <input
           type="text"
           value={note}
@@ -162,14 +162,14 @@ export default function TransactionForm({
       <div className="flex gap-2 pt-2">
         <button
           onClick={(e) => handleSubmit(e, false)}
-          className="flex-1 bg-blue-600 text-white py-2 rounded-lg"
+          className="flex-1 bg-[var(--color-accent)] text-white py-2 rounded-lg"
         >
           保存
         </button>
         {!editing?.id && (
           <button
             onClick={(e) => handleSubmit(e, true)}
-            className="border border-blue-300 text-blue-600 px-3 py-2 rounded-lg text-sm"
+            className="border border-blue-300 text-[var(--color-accent)] px-3 py-2 rounded-lg text-sm"
           >
             记录并继续
           </button>

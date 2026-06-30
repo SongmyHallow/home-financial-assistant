@@ -40,11 +40,11 @@ export default function PushSettings() {
     <div>
       <h3 className="font-semibold mb-2">推送设置</h3>
 
-      <div className="space-y-3 bg-gray-50 rounded-lg p-3">
+      <div className="space-y-3 bg-[var(--color-background)] rounded-lg p-3">
         <div className="flex items-center justify-between">
           <div>
             <p className="font-medium text-sm">微信推送</p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-[var(--color-muted)]">
               {hasPushPlus ? '已配置 PushPlus Token' : '需在环境变量中配置 PUSHPLUS_TOKEN'}
             </p>
           </div>
@@ -54,14 +54,14 @@ export default function PushSettings() {
         <div className="flex items-center justify-between">
           <div>
             <p className="font-medium text-sm">浏览器通知</p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-[var(--color-muted)]">
               {notifyGranted ? '✅ 已授权' : '⚠ 未授权'}
             </p>
           </div>
           {notifyGranted ? (
             <button onClick={testBrowserNotify} className="border px-3 py-1 rounded text-sm">测试</button>
           ) : (
-            <button onClick={requestNotification} className="bg-blue-600 text-white px-3 py-1 rounded text-sm">开启通知</button>
+            <button onClick={requestNotification} className="bg-[var(--color-accent)] text-white px-3 py-1 rounded text-sm">开启通知</button>
           )}
         </div>
 

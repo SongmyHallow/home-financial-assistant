@@ -13,33 +13,40 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-16">
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-lg font-bold">🏠 金融助手</h1>
+    <div className="min-h-screen bg-[var(--color-background)] pb-20">
+      <header className="bg-[var(--color-surface)] border-b border-[var(--color-border)] sticky top-0 z-10 backdrop-blur-sm bg-[var(--color-surface)]/90">
+        <div className="max-w-lg mx-auto px-5 py-3.5 flex items-center justify-between">
+          <h1 className="text-base font-semibold tracking-tight text-[var(--color-foreground)]">
+            家庭金融助手
+          </h1>
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto p-4">
+      <main className="max-w-lg mx-auto px-5 py-5">
         {children}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t z-10">
-        <div className="max-w-lg mx-auto flex justify-around">
-          {tabs.map(tab => (
-            <Link
-              key={tab.path}
-              href={tab.path}
-              className={`flex flex-col items-center py-2 px-3 text-xs ${
-                pathname.startsWith(tab.path)
-                  ? 'text-blue-600'
-                  : 'text-gray-500'
-              }`}
-            >
-              <span className="text-xl">{tab.icon}</span>
-              <span>{tab.label}</span>
-            </Link>
-          ))}
+      <nav className="fixed bottom-0 left-0 right-0 z-10 bg-[var(--color-surface)]/95 backdrop-blur-sm border-t border-[var(--color-border)]">
+        <div className="max-w-lg mx-auto flex justify-around py-1">
+          {tabs.map(tab => {
+            const active = pathname.startsWith(tab.path);
+            return (
+              <Link
+                key={tab.path}
+                href={tab.path}
+                className={`flex flex-col items-center gap-0.5 px-3 py-2 text-[11px] font-medium transition-colors duration-150 ${
+                  active
+                    ? 'text-[var(--color-accent)]'
+                    : 'text-[var(--color-muted-light)] hover:text-[var(--color-muted)]'
+                }`}
+              >
+                <span className={`text-lg transition-transform duration-150 ${active ? 'scale-110' : ''}`}>
+                  {tab.icon}
+                </span>
+                <span>{tab.label}</span>
+              </Link>
+            );
+          })}
         </div>
       </nav>
     </div>

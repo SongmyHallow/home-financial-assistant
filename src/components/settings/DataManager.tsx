@@ -58,14 +58,14 @@ export default function DataManager() {
       <h3 className="font-semibold mb-2">数据管理</h3>
       <div className="flex flex-wrap gap-2">
         <button onClick={() => handleExport('json')} disabled={exporting}
-          className="border px-3 py-1.5 rounded-lg text-sm hover:bg-gray-50">导出 JSON</button>
+          className="border px-3 py-1.5 rounded-lg text-sm hover:bg-[var(--color-background)]">导出 JSON</button>
         <button onClick={() => handleExport('csv')} disabled={exporting}
-          className="border px-3 py-1.5 rounded-lg text-sm hover:bg-gray-50">导出 CSV</button>
+          className="border px-3 py-1.5 rounded-lg text-sm hover:bg-[var(--color-background)]">导出 CSV</button>
         <button onClick={handleImport}
-          className="border px-3 py-1.5 rounded-lg text-sm hover:bg-gray-50">导入数据</button>
+          className="border px-3 py-1.5 rounded-lg text-sm hover:bg-[var(--color-background)]">导入数据</button>
       </div>
       <button onClick={handleClear}
-        className="mt-3 border border-red-300 text-red-500 px-3 py-1.5 rounded-lg text-sm hover:bg-red-50">
+        className="mt-3 border border-red-300 text-[var(--color-danger)] px-3 py-1.5 rounded-lg text-sm hover:bg-red-50">
         清空所有数据
       </button>
     </div>

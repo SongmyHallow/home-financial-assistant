@@ -76,7 +76,7 @@ export default function TransactionList() {
             setEditing(null);
             setShowForm(!showForm);
           }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm"
+          className="bg-[var(--color-accent)] text-white px-4 py-2 rounded-lg text-sm"
         >
           ✏ 记一笔
         </button>
@@ -124,17 +124,17 @@ export default function TransactionList() {
 
       {/* 月度汇总 */}
       <div className="grid grid-cols-3 gap-2 mb-4 text-center">
-        <div className="bg-white rounded-lg p-2 border">
-          <p className="text-xs text-gray-500">本月流入</p>
-          <p className="font-bold text-green-600">¥{totalIn.toLocaleString()}</p>
+        <div className="bg-[var(--color-surface)] rounded-lg p-2 border">
+          <p className="text-xs text-[var(--color-muted)]">本月流入</p>
+          <p className="font-bold text-[var(--color-success)]">¥{totalIn.toLocaleString()}</p>
         </div>
-        <div className="bg-white rounded-lg p-2 border">
-          <p className="text-xs text-gray-500">本月流出</p>
+        <div className="bg-[var(--color-surface)] rounded-lg p-2 border">
+          <p className="text-xs text-[var(--color-muted)]">本月流出</p>
           <p className="font-bold text-red-600">¥{totalOut.toLocaleString()}</p>
         </div>
-        <div className="bg-white rounded-lg p-2 border">
-          <p className="text-xs text-gray-500">净额</p>
-          <p className={`font-bold ${net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+        <div className="bg-[var(--color-surface)] rounded-lg p-2 border">
+          <p className="text-xs text-[var(--color-muted)]">净额</p>
+          <p className={`font-bold ${net >= 0 ? 'text-[var(--color-success)]' : 'text-red-600'}`}>
             ¥{net.toLocaleString()}
           </p>
         </div>
@@ -142,31 +142,31 @@ export default function TransactionList() {
 
       {/* 流水列表 */}
       {loading ? (
-        <p className="text-gray-400 text-center py-8">加载中...</p>
+        <p className="text-[var(--color-muted-light)] text-center py-8">加载中...</p>
       ) : transactions.length === 0 ? (
-        <p className="text-gray-400 text-center py-8">暂无流水记录</p>
+        <p className="text-[var(--color-muted-light)] text-center py-8">暂无流水记录</p>
       ) : (
         <div className="space-y-1">
           {transactions.map((t) => (
             <div
               key={t.id}
-              className="bg-white rounded-lg px-3 py-2 border flex items-center justify-between"
+              className="bg-[var(--color-surface)] rounded-lg px-3 py-2 border flex items-center justify-between"
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-400">{t.date}</span>
-                  <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100">{t.category}</span>
+                  <span className="text-xs text-[var(--color-muted-light)]">{t.date}</span>
+                  <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--color-surface-hover)]">{t.category}</span>
                 </div>
                 <p className="text-sm truncate">
                   {t.from_account?.name || '?'} → {t.to_account?.name || t.to_label || '?'}
                 </p>
-                {t.note && <p className="text-xs text-gray-400 truncate">{t.note}</p>}
+                {t.note && <p className="text-xs text-[var(--color-muted-light)] truncate">{t.note}</p>}
               </div>
               <div className="flex items-center gap-2 ml-2 shrink-0">
                 <span
                   className={`font-medium ${
                     ['新股收益', '利息/分红'].includes(t.category)
-                      ? 'text-green-600'
+                      ? 'text-[var(--color-success)]'
                       : 'text-red-600'
                   }`}
                 >
@@ -177,13 +177,13 @@ export default function TransactionList() {
                     setEditing(t);
                     setShowForm(true);
                   }}
-                  className="text-blue-600 text-xs"
+                  className="text-[var(--color-accent)] text-xs"
                 >
                   编辑
                 </button>
                 <button
                   onClick={() => handleDelete(t.id)}
-                  className="text-gray-400 text-xs"
+                  className="text-[var(--color-muted-light)] text-xs"
                 >
                   删
                 </button>
