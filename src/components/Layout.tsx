@@ -13,10 +13,19 @@ const tabs = [
   { path: '/dashboard/changelog', label: '更新日志', icon: '📋' },
 ];
 
+import { useState, useEffect } from 'react';
+
+// ... keep tabs, etc.
+
 export default function Layout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const isLedger = pathname.startsWith('/dashboard/ledger');
+  const [dateStr, setDateStr] = useState('');
+
+  useEffect(() => {
+    setDateStr(new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' }));
+  }, []);
 
   async function handleLogout() {
     await fetch('/api/auth', { method: 'DELETE' });
@@ -33,9 +42,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <h1 className="text-sm font-semibold tracking-tight text-[var(--color-foreground)]">
             家庭金融助手
           </h1>
-          <p className="text-[11px] text-[var(--color-muted-light)] mt-0.5">
-            {new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' })}
-          </p>
+          <p className="text-[11px] text-[var(--color-muted-light)] mt-0.5">{dateStr}</p>
         </div>
 
         {/* 导航 */}
@@ -80,9 +87,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <h1 className="text-sm font-semibold tracking-tight text-[var(--color-foreground)]">
               家庭金融助手
             </h1>
-            <span className="text-[11px] text-[var(--color-muted-light)]">
-              {new Date().toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric', weekday: 'short' })}
-            </span>
+            <span className="text-[11px] text-[var(--color-muted-light)]">{dateStr}</span>
           </div>
         </header>
 
