@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import type { IpoListing } from '@/lib/types';
+import type { IpoListing, AccountV2 } from '@/lib/types';
 import IpoCard from './IpoCard';
 
 const MARKET_FILTERS = ['全部', '北交所', '港股'] as const;
@@ -11,6 +11,7 @@ export default function IpoList() {
   const [market, setMarket] = useState<string>('全部');
   const [loading, setLoading] = useState(true);
   const [watching, setWatching] = useState<Set<string>>(new Set());
+  const [brokerageAccounts, setBrokerageAccounts] = useState<AccountV2[]>([]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -31,6 +32,22 @@ export default function IpoList() {
     fetchWatched();
     return () => controller.abort();
   }, [market]);
+
+  // 加载券商账户（is_brokerage=true）
+  useEffect(() => {
+    async function fetchBrokerageAccounts() {
+      try {
+        const res = await fetch('/api/accounts');
+        const data: AccountV2[] = await res.json();
+        if (Array.isArray(data)) {
+          setBrokerageAccounts(data.filter(a => a.is_brokerage));
+        }
+      } catch {
+        // 静默失败
+      }
+    }
+    fetchBrokerageAccounts();
+  }, []);
 
   async function fetchWatched() {
     const res = await fetch('/api/ipo/watch');
@@ -104,6 +121,7 @@ export default function IpoList() {
               watched={watched.includes(ipo.id)}
               onToggleWatch={toggleWatch}
               disabled={watching.has(ipo.id) ? 'opacity-50 pointer-events-none' : ''}
+              brokerageAccounts={brokerageAccounts}
             />
           ))}
         </div>

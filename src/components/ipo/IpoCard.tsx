@@ -1,5 +1,6 @@
 'use client';
-import type { IpoListing } from '@/lib/types';
+import { useState, useEffect, useCallback } from 'react';
+import type { IpoListing, IpoAllocation, AccountV2 } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 
 export default function IpoCard({
@@ -7,15 +8,68 @@ export default function IpoCard({
   watched,
   onToggleWatch,
   disabled = '',
+  brokerageAccounts = [],
 }: {
   ipo: IpoListing;
   watched: boolean;
   onToggleWatch: (id: string) => void;
   disabled?: string;
+  brokerageAccounts?: AccountV2[];
 }) {
   const router = useRouter();
   const deadline = new Date(ipo.subscription_deadline);
   const isUrgent = deadline.getTime() - Date.now() < 2 * 24 * 60 * 60 * 1000;
+
+  // 配资状态
+  const [allocations, setAllocations] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState('');
+
+  // 加载已有配资数据
+  const loadAllocations = useCallback(async () => {
+    if (ipo.market !== '北交所') return;
+    try {
+      const res = await fetch(`/api/ipo/allocations?ipo_id=${ipo.id}`);
+      const data: IpoAllocation[] = await res.json();
+      if (Array.isArray(data)) {
+        const map: Record<string, string> = {};
+        data.forEach(a => { map[a.account_id] = String(a.amount); });
+        setAllocations(map);
+      }
+    } catch {
+      // 静默失败
+    }
+  }, [ipo.id, ipo.market]);
+
+  useEffect(() => {
+    loadAllocations();
+  }, [loadAllocations]);
+
+  async function saveAllocations() {
+    setSaving(true);
+    setSaveMsg('');
+    try {
+      const entries = brokerageAccounts.map(acc => ({
+        account_id: acc.id,
+        amount: Number(allocations[acc.id] ?? 0),
+      }));
+      await Promise.all(
+        entries.map(e =>
+          fetch('/api/ipo/allocations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ipo_id: ipo.id, account_id: e.account_id, amount: e.amount }),
+          })
+        )
+      );
+      setSaveMsg('已保存');
+    } catch {
+      setSaveMsg('保存失败');
+    } finally {
+      setSaving(false);
+      setTimeout(() => setSaveMsg(''), 2000);
+    }
+  }
 
   function createReminder() {
     const params = new URLSearchParams({
@@ -76,6 +130,40 @@ export default function IpoCard({
           <p className="font-medium text-[var(--color-foreground)]">{ipo.expected_listing_date || '-'}</p>
         </div>
       </div>
+
+      {/* 北交所配资分配 */}
+      {ipo.market === '北交所' && brokerageAccounts.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-[var(--color-border-light)]">
+          <p className="text-xs font-medium mb-2 text-[var(--color-foreground)]">资金分配</p>
+          {brokerageAccounts.map(acc => (
+            <div key={acc.id} className="flex items-center gap-2 mb-1.5">
+              <span className="text-xs text-[var(--color-muted)] w-20 truncate">{acc.name}</span>
+              <input
+                type="number"
+                placeholder="金额"
+                value={allocations[acc.id] ?? ''}
+                onChange={e => setAllocations({ ...allocations, [acc.id]: e.target.value })}
+                className="flex-1 text-sm border border-[var(--color-border)] rounded-lg px-2 py-1
+                           bg-[var(--color-surface)] text-[var(--color-foreground)]
+                           focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+              />
+            </div>
+          ))}
+          <div className="flex items-center gap-2 mt-2">
+            <button
+              onClick={saveAllocations}
+              disabled={saving}
+              className="text-xs bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)]
+                         text-white px-3 py-1.5 rounded-lg transition-colors duration-150 disabled:opacity-50"
+            >
+              {saving ? '保存中...' : '确认分配'}
+            </button>
+            {saveMsg && (
+              <span className="text-xs text-[var(--color-muted)]">{saveMsg}</span>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-2 mt-3">
         <button
