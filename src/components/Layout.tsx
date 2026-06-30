@@ -14,21 +14,21 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen bg-[var(--color-background)] pb-20">
+    <div className="min-h-screen bg-[var(--color-background)] pb-20 md:pb-16">
       <header className="bg-[var(--color-surface)] border-b border-[var(--color-border)] sticky top-0 z-10 backdrop-blur-sm bg-[var(--color-surface)]/90">
-        <div className="max-w-lg mx-auto px-5 py-3.5 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-5 py-3.5 flex items-center justify-between">
           <h1 className="text-base font-semibold tracking-tight text-[var(--color-foreground)]">
             家庭金融助手
           </h1>
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-5 py-5">
+      <main className="max-w-6xl mx-auto px-5 py-5">
         {children}
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 z-10 bg-[var(--color-surface)]/95 backdrop-blur-sm border-t border-[var(--color-border)]">
-        <div className="max-w-lg mx-auto flex justify-around py-1">
+        <div className="max-w-2xl mx-auto flex justify-around py-1">
           {tabs.map(tab => {
             const active = pathname.startsWith(tab.path);
             return (
