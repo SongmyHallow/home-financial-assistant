@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import type { Activity, DailyBalance } from '@/lib/types';
 
 function fmt(n: number) {
   return n.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
@@ -21,54 +22,48 @@ export default function AnnualPage() {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const months: MonthSummary[] = [];
-      for (let m = 1; m <= 12; m++) {
-        const month = `${year}-${String(m).padStart(2, '0')}`;
-        try {
-          const [actRes, balRes, accRes] = await Promise.all([
-            fetch(`/api/activities?month=${month}`),
-            fetch(`/api/balances?month=${month}`),
-            fetch('/api/accounts'),
-          ]);
-          const activities = await actRes.json();
-          const balances = await balRes.json();
-          const accounts = await accRes.json();
+      try {
+        const [actRes, balRes] = await Promise.all([
+          fetch(`/api/activities?year=${year}`),
+          fetch(`/api/balances?year=${year}`),
+        ]);
+        const activities: Activity[] = await actRes.json();
+        const balances: DailyBalance[] = await balRes.json();
 
-          if (!Array.isArray(balances) || !Array.isArray(accounts)) {
-            months.push({ month, totalAvg: 0, totalTarget: 0, gap: 0, activityCount: 0 });
-            continue;
-          }
+        if (!Array.isArray(balances)) { setLoading(false); return; }
+        const actArr = Array.isArray(activities) ? activities : [];
 
+        const months: MonthSummary[] = [];
+        for (let m = 1; m <= 12; m++) {
+          const month = `${year}-${String(m).padStart(2, '0')}`;
           const daysInMonth = new Date(year, m, 0).getDate();
           const monthEnd = `${month}-${String(daysInMonth).padStart(2, '0')}`;
-          const monthBalances = balances.filter((b: any) => b.date <= monthEnd);
+
+          const monthBalances = balances.filter((b: any) => b.date >= `${month}-01` && b.date <= monthEnd);
           const totalSum = monthBalances.reduce((s: number, b: any) => s + (b.balance || 0), 0);
           const totalAvg = daysInMonth > 0 ? totalSum / daysInMonth : 0;
 
-          const actArr = Array.isArray(activities) ? activities : [];
-          const totalTarget = actArr.reduce((s: number, a: any) => s + (a.target_daily_avg || a.base_daily_avg || 0), 0);
+          const monthActs = actArr.filter((a: any) => a.month === month);
+          const totalTarget = monthActs.reduce((s: number, a: any) => s + (a.target_daily_avg || a.base_daily_avg || 0), 0);
 
           months.push({
             month,
             totalAvg,
             totalTarget,
             gap: totalTarget > 0 ? totalAvg - totalTarget : 0,
-            activityCount: actArr.length,
+            activityCount: monthActs.length,
           });
-        } catch {
-          months.push({ month, totalAvg: 0, totalTarget: 0, gap: 0, activityCount: 0 });
         }
-      }
-      setSummaries(months);
+        setSummaries(months);
+      } catch {}
       setLoading(false);
     }
     load();
   }, [year]);
 
   const yearTotal = summaries.reduce((s, m) => s + m.totalAvg, 0);
-  const yearAvg = summaries.filter((m) => m.totalAvg > 0).length > 0
-    ? yearTotal / summaries.filter((m) => m.totalAvg > 0).length
-    : 0;
+  const activeMonths = summaries.filter((m) => m.totalAvg > 0).length;
+  const yearAvg = activeMonths > 0 ? yearTotal / activeMonths : 0;
 
   if (loading) return <div className="text-center py-12 text-[var(--color-muted)]">加载中...</div>;
 
@@ -76,7 +71,6 @@ export default function AnnualPage() {
     <div className="max-w-3xl mx-auto space-y-6">
       <h2 className="text-xl font-bold">📈 {year} 年度收益率</h2>
 
-      {/* 年度概览 */}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-4">
           <p className="text-[11px] text-[var(--color-muted)] uppercase tracking-wider">年度月均资产</p>
@@ -88,7 +82,6 @@ export default function AnnualPage() {
         </div>
       </div>
 
-      {/* 月度明细 */}
       <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] overflow-hidden">
         <table className="w-full text-sm">
           <thead>

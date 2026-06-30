@@ -4,15 +4,18 @@ import { createServiceClient } from '@/lib/supabase';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const month = searchParams.get('month');
+  const year = searchParams.get('year');
   const supabase = createServiceClient();
 
   let query = supabase
     .from('activities')
     .select('*, account:account_id(*)')
-    .order('created_at', { ascending: true });
+    .order('month', { ascending: true });
 
   if (month) {
     query = query.eq('month', month);
+  } else if (year) {
+    query = query.gte('month', `${year}-01`).lte('month', `${year}-12`);
   }
 
   const { data, error } = await query;

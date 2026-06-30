@@ -4,18 +4,27 @@ import { createServiceClient } from '@/lib/supabase';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const month = searchParams.get('month');
-  if (!month) return NextResponse.json({ error: '缺少 month 参数' }, { status: 400 });
+  const year = searchParams.get('year');
+
+  if (!month && !year) return NextResponse.json({ error: '缺少 month 或 year 参数' }, { status: 400 });
 
   const supabase = createServiceClient();
-  // 计算月末最后一天
-  const [year, mon] = month.split('-').map(Number);
-  const lastDay = new Date(year, mon, 0).toISOString().slice(0, 10);
+
+  let startDate: string, endDate: string;
+  if (year) {
+    startDate = `${year}-01-01`;
+    endDate = `${year}-12-31`;
+  } else {
+    const [y, m] = month!.split('-').map(Number);
+    startDate = `${month}-01`;
+    endDate = new Date(y, m, 0).toISOString().slice(0, 10);
+  }
 
   const { data, error } = await supabase
     .from('daily_balances')
     .select('*, account:account_id(*)')
-    .gte('date', `${month}-01`)
-    .lte('date', lastDay)
+    .gte('date', startDate)
+    .lte('date', endDate)
     .order('date', { ascending: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
