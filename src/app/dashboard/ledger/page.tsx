@@ -118,6 +118,9 @@ export default function LedgerPage() {
           >
             📋 从 Excel 粘贴
           </button>
+          <span className="hidden md:inline text-[11px] text-[var(--color-muted-light)]">
+            Excel 中 Ctrl+C 选中区域，在此粘贴
+          </span>
           <input
             type="month"
             value={month}

@@ -594,6 +594,12 @@ export default function LedgerGrid({ month, accounts }: Props) {
           </tbody>
         </table>
       </div>
+
+      {/* 规则说明 */}
+      <p className="text-[11px] text-[var(--color-muted-light)]">
+        💡 资产总计用于核验总金额是否正确。如果填报正确，本月总金额不应有太大变化（资金仅在不同账户间转移）。
+        如有增减，请在备注中注明原因。
+      </p>
     </div>
   );
 }
