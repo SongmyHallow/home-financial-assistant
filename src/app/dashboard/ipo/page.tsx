@@ -3,9 +3,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import IpoCalendar from '@/components/ipo/IpoCalendar';
 import IpoList from '@/components/ipo/IpoList';
+import HkIpoPage from '../hk-ipo/page';
 
 export default function IpoPage() {
-  const router = useRouter();
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
   const [market, setMarket] = useState<'bj' | 'hk'>('bj');
 
@@ -14,7 +14,6 @@ export default function IpoPage() {
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <h2 className="text-xl font-bold">🏦 IPO 管理</h2>
         <div className="flex items-center gap-2">
-          {/* 市场切换 */}
           <div className="flex bg-[var(--color-border-light)] rounded-xl p-0.5">
             <button
               onClick={() => setMarket('bj')}
@@ -25,7 +24,7 @@ export default function IpoPage() {
               北交所
             </button>
             <button
-              onClick={() => { setMarket('hk'); router.push('/dashboard/hk-ipo'); }}
+              onClick={() => setMarket('hk')}
               className={`px-3 py-1.5 rounded-[10px] text-[13px] font-medium transition-all ${
                 market === 'hk' ? 'bg-white text-[var(--color-foreground)] shadow-sm' : 'text-[var(--color-muted)]'
               }`}
@@ -34,7 +33,6 @@ export default function IpoPage() {
             </button>
           </div>
 
-          {/* 视图切换（仅北交所） */}
           {market === 'bj' && (
             <div className="flex bg-[var(--color-border-light)] rounded-xl p-0.5">
               <button
@@ -57,7 +55,11 @@ export default function IpoPage() {
           )}
         </div>
       </div>
-      {view === 'calendar' ? <IpoCalendar /> : <IpoList />}
+      {market === 'bj' ? (
+        view === 'calendar' ? <IpoCalendar /> : <IpoList />
+      ) : (
+        <HkIpoPage />
+      )}
     </div>
   );
 }
