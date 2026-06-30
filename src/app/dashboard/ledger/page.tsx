@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { AccountV2 } from '@/lib/types';
 import LedgerGrid from '@/components/ledger/LedgerGrid';
-import TransferBar from '@/components/ledger/TransferBar';
+import TransferRulesCard from '@/components/ledger/TransferRulesCard';
 
 export default function LedgerPage() {
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
@@ -19,8 +19,7 @@ export default function LedgerPage() {
     fetchAccounts();
   }, [fetchAccounts]);
 
-  function handleTransferComplete() {
-    // 触发 LedgerGrid 重新加载
+  function handleRefresh() {
     setGridKey((k) => k + 1);
   }
 
@@ -37,12 +36,8 @@ export default function LedgerPage() {
         />
       </div>
 
-      {/* 转账栏 */}
-      <TransferBar
-        accounts={accounts}
-        month={month}
-        onTransferComplete={handleTransferComplete}
-      />
+      {/* 转账规则卡片（可折叠） */}
+      <TransferRulesCard accounts={accounts} />
 
       {/* 台账主体 */}
       <LedgerGrid key={`${month}-${gridKey}`} month={month} accounts={accounts} />
