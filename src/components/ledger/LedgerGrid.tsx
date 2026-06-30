@@ -363,7 +363,9 @@ export default function LedgerGrid({ month, accounts }: Props) {
               {accounts.map((acc) => (
                 <th
                   key={acc.id}
-                  className="px-3 py-2 text-right font-medium text-[var(--color-muted)] border-b border-r border-[var(--color-border)] whitespace-nowrap"
+                  className={`px-3 py-2 text-right font-medium border-b border-r border-[var(--color-border)] whitespace-nowrap ${
+                    acc.is_brokerage ? 'text-blue-600' : 'text-[var(--color-muted)]'
+                  }`}
                 >
                   {acc.name}
                   {activityMap.has(acc.id) && (
@@ -420,7 +422,9 @@ export default function LedgerGrid({ month, accounts }: Props) {
                         key={acc.id}
                         className={`px-2 py-1.5 border-b border-r border-[var(--color-border)] text-right cursor-pointer min-w-[90px] ${
                           isNearTarget ? 'bg-[var(--color-success-light)]' : ''
-                        } ${!hasRecord ? 'text-[var(--color-muted-light)]' : ''}`}
+                        } ${!hasRecord ? 'text-[var(--color-muted-light)]' : ''} ${
+                          acc.is_brokerage && hasRecord ? 'text-blue-600 font-medium' : ''
+                        }`}
                         onClick={() => !isEditing && startEdit(acc.id, date, value)}
                       >
                         {isEditing ? (
