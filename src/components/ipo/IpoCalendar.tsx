@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
-import type { IpoListing, AccountV2 } from '@/lib/types';
+import type { IpoListing } from '@/lib/types';
+import { useRouter } from 'next/navigation';
 
 function getDaysInMonth(year: number, month: number): Date[] {
   const days: Date[] = [];
@@ -14,6 +15,7 @@ function getDaysInMonth(year: number, month: number): Date[] {
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
 
 export default function IpoCalendar() {
+  const router = useRouter();
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
@@ -154,6 +156,7 @@ export default function IpoCalendar() {
                     <th className="px-3 py-2.5 text-right text-xs text-[var(--color-muted)] font-medium">发行市盈率</th>
                     <th className="px-3 py-2.5 text-right text-xs text-[var(--color-muted)] font-medium">申购日</th>
                     <th className="px-3 py-2.5 text-right text-xs text-[var(--color-muted)] font-medium">上市日</th>
+                    <th className="px-3 py-2.5 text-center text-xs text-[var(--color-muted)] font-medium">操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -170,6 +173,23 @@ export default function IpoCalendar() {
                       </td>
                       <td className="px-3 py-2.5 text-right">
                         {ipo.expected_listing_date || '—'}
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const params = new URLSearchParams({
+                              template: '申购',
+                              title: `申购${ipo.company_name}`,
+                              desc: `代码 ${ipo.subscription_code}，一手 ¥${ipo.lot_amount?.toLocaleString() ?? '-'}`,
+                              deadline: ipo.subscription_deadline || '',
+                            });
+                            router.push(`/dashboard/reminders?${params.toString()}`);
+                          }}
+                          className="text-[11px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white px-3 py-1 rounded-lg whitespace-nowrap transition-colors"
+                        >
+                          创建提醒
+                        </button>
                       </td>
                     </tr>
                   ))}

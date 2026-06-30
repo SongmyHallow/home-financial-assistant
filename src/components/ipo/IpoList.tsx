@@ -1,10 +1,12 @@
 'use client';
 import { useState, useEffect } from 'react';
 import type { IpoListing } from '@/lib/types';
+import { useRouter } from 'next/navigation';
 
 const MARKET_FILTERS = ['全部', '北交所', '港股'] as const;
 
 export default function IpoList() {
+  const router = useRouter();
   const [ipos, setIpos] = useState<IpoListing[]>([]);
   const [market, setMarket] = useState<string>('全部');
   const [loading, setLoading] = useState(true);
@@ -66,6 +68,7 @@ export default function IpoList() {
                 <th className="px-3 py-2.5 text-right text-xs text-[var(--color-muted)] font-medium">申购日</th>
                 <th className="px-3 py-2.5 text-right text-xs text-[var(--color-muted)] font-medium">上市日</th>
                 <th className="px-3 py-2.5 text-left text-xs text-[var(--color-muted)] font-medium">行业</th>
+                <th className="px-3 py-2.5 text-center text-xs text-[var(--color-muted)] font-medium">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -90,6 +93,23 @@ export default function IpoList() {
                   </td>
                   <td className="px-3 py-2.5 text-xs text-[var(--color-muted)]">
                     {ipo.industry || '—'}
+                  </td>
+                  <td className="px-2 py-2 text-center">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const params = new URLSearchParams({
+                          template: '申购',
+                          title: `申购${ipo.company_name}`,
+                          desc: `代码 ${ipo.subscription_code}，一手 ¥${ipo.lot_amount?.toLocaleString() ?? '-'}`,
+                          deadline: ipo.subscription_deadline || '',
+                        });
+                        router.push(`/dashboard/reminders?${params.toString()}`);
+                      }}
+                      className="text-[11px] bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white px-3 py-1 rounded-lg whitespace-nowrap transition-colors"
+                    >
+                      创建提醒
+                    </button>
                   </td>
                 </tr>
               ))}
