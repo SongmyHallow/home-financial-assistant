@@ -394,9 +394,12 @@ export default function LedgerGrid({ month, accounts }: Props) {
                   key={date}
                   className="hover:bg-[var(--color-accent-light)] transition-colors"
                 >
-                  {/* 粘性日期 */}
-                  <td className="sticky left-0 z-10 bg-[var(--color-surface)] hover:bg-[var(--color-accent-light)] px-3 py-1.5 border-b border-r border-[var(--color-border)] whitespace-nowrap text-[var(--color-muted)] text-xs">
-                    {date.slice(5)}
+                  {/* 粘性日期（含星期） */}
+                  <td className="sticky left-0 z-10 bg-[var(--color-surface)] hover:bg-[var(--color-accent-light)] px-3 py-1.5 border-b border-r border-[var(--color-border)] whitespace-nowrap text-xs">
+                    <span className="text-[var(--color-foreground)]">{date.slice(5)}</span>
+                    <span className="text-[var(--color-muted-light)] ml-1.5 text-[10px]">
+                      {['日','一','二','三','四','五','六'][new Date(date).getDay()]}
+                    </span>
                   </td>
 
                   {/* 每个账户的单元格 */}
@@ -429,24 +432,32 @@ export default function LedgerGrid({ month, accounts }: Props) {
                               onChange={(e) => setEditValue(e.target.value)}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') saveCell(acc.id, date, editValue);
-                                if (e.key === 'Escape') {
-                                  skipNextBlurRef.current = true;
-                                  setEditingKey(null);
-                                }
-                              }}
-                              onBlur={() => {
-                                if (skipNextBlurRef.current) { skipNextBlurRef.current = false; return; }
-                                saveCell(acc.id, date, editValue);
+                                if (e.key === 'Escape') setEditingKey(null);
                               }}
                               className="w-24 text-right border border-[var(--color-accent)] rounded px-1 py-0.5 text-xs outline-none bg-white"
                             />
-                            {/* Fix 3: 删除按钮，仅当单元格有真实记录时显示 */}
+                            <button
+                              type="button"
+                              title="保存"
+                              onMouseDown={(e) => { e.preventDefault(); saveCell(acc.id, date, editValue); }}
+                              className="text-[var(--color-success)] text-xs px-1 py-0.5 rounded hover:bg-[var(--color-success-light)] leading-none font-bold"
+                            >
+                              ✓
+                            </button>
+                            <button
+                              type="button"
+                              title="取消"
+                              onMouseDown={(e) => { e.preventDefault(); setEditingKey(null); }}
+                              className="text-[var(--color-muted-light)] text-xs px-1 py-0.5 rounded hover:bg-[var(--color-surface-hover)] leading-none"
+                            >
+                              ✗
+                            </button>
+                            {/* 删除按钮，仅当单元格有真实记录时显示 */}
                             {balanceMap.get(acc.id)?.entries.get(date)?.id && (
                               <button
                                 type="button"
                                 title="清空此记录"
                                 onMouseDown={(e) => {
-                                  // 阻止 blur 触发 saveCell
                                   e.preventDefault();
                                   skipNextBlurRef.current = true;
                                   deleteCell(balanceMap.get(acc.id)!.entries.get(date)!.id);
