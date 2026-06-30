@@ -130,24 +130,16 @@ export default function LedgerGrid({ month, accounts }: Props) {
   // 汇总数据
   const summary = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
-    const nonZeroDays = dailyTotals.filter((_, i) => dailyTotals[i] > 0 && days[i] <= today);
-    const monthlyTotal = nonZeroDays.reduce((s, v) => s + v, 0);
-    const monthlyAvg = nonZeroDays.length > 0
-      ? monthlyTotal / nonZeroDays.length
+    const daysToToday = days.filter((d) => d <= today);
+    const monthlyTotal = daysToToday.reduce((s, _, i) => {
+      const dayIdx = days.indexOf(daysToToday[i]);
+      return s + (dailyTotals[dayIdx] || 0);
+    }, 0);
+    const monthlyAvg = daysToToday.length > 0
+      ? monthlyTotal / daysToToday.length
       : 0;
-
-    // 找最低基准日均
-    const baseAvgs = activities.map((a) => a.base_daily_avg).filter((v) => v > 0);
-    const lowestBase = baseAvgs.length > 0 ? Math.min(...baseAvgs) : 0;
-    const assetImprovement = monthlyAvg - lowestBase;
-
-    // 最高目标日均
-    const targetAvgs = activities.map((a) => a.target_daily_avg ?? 0).filter((v) => v > 0);
-    const highestTarget = targetAvgs.length > 0 ? Math.max(...targetAvgs) : 0;
-    const vsTarget = highestTarget > 0 ? (monthlyAvg / highestTarget) * 100 : null;
-
-    return { monthlyTotal, monthlyAvg, assetImprovement, vsTarget };
-  }, [dailyTotals, days, activities]);
+    return { monthlyTotal, monthlyAvg };
+  }, [dailyTotals, days]);
 
   // 保存单元格
   async function saveCell(accountId: string, date: string, value: string) {
@@ -506,15 +498,15 @@ export default function LedgerGrid({ month, accounts }: Props) {
                 本月日均
               </td>
               {accounts.map((acc) => {
-                // 各账户日均：使用继承余额，与网格显示保持一致
                 const today = new Date().toISOString().slice(0, 10);
                 const relevantDays = days.filter((d) => d <= today);
-                let avg = 0;
-                if (relevantDays.length > 0) {
-                  const inherited = relevantDays.map((d) => getInheritedBalance(acc.id, d).value);
-                  const nonZero = inherited.filter((v) => v > 0);
-                  avg = nonZero.length > 0 ? nonZero.reduce((s, v) => s + v, 0) / nonZero.length : 0;
+                let sum = 0;
+                let count = 0;
+                for (const d of relevantDays) {
+                  const b = getBalance(acc.id, d);
+                  if (b) { sum += b.balance; count++; }
                 }
+                const avg = count > 0 ? sum / days.length : 0;
                 return (
                   <td key={acc.id} className="px-3 py-2 border-t border-r border-[var(--color-border)] text-right text-xs whitespace-nowrap">
                     {avg > 0 ? fmt(avg) : '-'}
@@ -530,47 +522,58 @@ export default function LedgerGrid({ month, accounts }: Props) {
               <td className="sticky left-0 z-10 bg-[var(--color-background)] px-3 py-2 border-t border-r border-[var(--color-border)] text-xs text-[var(--color-muted)] whitespace-nowrap">
                 资产提升
               </td>
-              <td
-                colSpan={accounts.length}
-                className="px-3 py-2 border-t border-r border-[var(--color-border)] text-right text-xs"
-              />
-              <td className="px-3 py-2 border-t border-r border-[var(--color-border)] text-right text-xs whitespace-nowrap">
-                <span
-                  className={
-                    summary.assetImprovement >= 0
-                      ? 'text-[var(--color-success)]'
-                      : 'text-[var(--color-danger)]'
-                  }
-                >
-                  {summary.assetImprovement >= 0 ? '+' : ''}
-                  {fmt(summary.assetImprovement)}
-                </span>
-              </td>
+              {accounts.map((acc) => {
+                const act = activityMap.get(acc.id);
+                const today = new Date().toISOString().slice(0, 10);
+                const relevantDays = days.filter((d) => d <= today);
+                let sum = 0, count = 0;
+                for (const d of relevantDays) {
+                  const b = getBalance(acc.id, d);
+                  if (b) { sum += b.balance; count++; }
+                }
+                const avg = count > 0 ? sum / days.length : 0;
+                const base = act?.base_daily_avg || 0;
+                const improvement = avg - base;
+                return (
+                  <td key={acc.id} className="px-3 py-2 border-t border-r border-[var(--color-border)] text-right text-xs whitespace-nowrap">
+                    {base > 0 ? (
+                      <span className={improvement >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'}>
+                        {improvement >= 0 ? '+' : ''}{fmt(improvement)}
+                      </span>
+                    ) : '-'}
+                  </td>
+                );
+              })}
+              <td className="px-3 py-2 border-t border-r border-[var(--color-border)]" />
               <td className="px-3 py-2 border-t border-[var(--color-border)]" />
             </tr>
             <tr className="bg-[var(--color-background)]">
               <td className="sticky left-0 z-10 bg-[var(--color-background)] px-3 py-2 border-t border-r border-[var(--color-border)] text-xs text-[var(--color-muted)] whitespace-nowrap">
                 vs 目标
               </td>
-              <td
-                colSpan={accounts.length}
-                className="px-3 py-2 border-t border-r border-[var(--color-border)]"
-              />
-              <td className="px-3 py-2 border-t border-r border-[var(--color-border)] text-right text-xs whitespace-nowrap">
-                {summary.vsTarget !== null ? (
-                  <span
-                    className={
-                      summary.vsTarget >= 100
-                        ? 'text-[var(--color-success)]'
-                        : 'text-[var(--color-danger)]'
-                    }
-                  >
-                    {summary.vsTarget.toFixed(1)}%
-                  </span>
-                ) : (
-                  '-'
-                )}
-              </td>
+              {accounts.map((acc) => {
+                const act = activityMap.get(acc.id);
+                const today = new Date().toISOString().slice(0, 10);
+                const relevantDays = days.filter((d) => d <= today);
+                let sum = 0, count = 0;
+                for (const d of relevantDays) {
+                  const b = getBalance(acc.id, d);
+                  if (b) { sum += b.balance; count++; }
+                }
+                const avg = count > 0 ? sum / days.length : 0;
+                const target = act?.target_daily_avg;
+                const gap = target ? avg - target : 0;
+                return (
+                  <td key={acc.id} className="px-3 py-2 border-t border-r border-[var(--color-border)] text-right text-xs whitespace-nowrap">
+                    {target ? (
+                      <span className={gap >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'}>
+                        {gap >= 0 ? '+' : ''}{fmt(gap)}
+                      </span>
+                    ) : '-'}
+                  </td>
+                );
+              })}
+              <td className="px-3 py-2 border-t border-r border-[var(--color-border)]" />
               <td className="px-3 py-2 border-t border-[var(--color-border)]" />
             </tr>
           </tbody>
