@@ -91,7 +91,12 @@ export default function LedgerGrid({ month, accounts }: Props) {
 
   const days = useMemo(() => getDaysInMonth(month), [month]);
 
-  // 计算继承余额：对于每个 accountId + date，返回该日期当天或最近之前的余额值
+  // 获取某天某账户的余额（仅真实记录，不向前继承显示）
+  function getBalance(accountId: string, date: string): DailyBalance | undefined {
+    return balanceMap.get(accountId)?.entries.get(date);
+  }
+
+  // 计算继承余额（用于"一键沿用"功能，不用于显示）
   const getInheritedBalance = useCallback(
     (accountId: string, date: string): { value: number; inherited: boolean } => {
       const accData = balanceMap.get(accountId);
@@ -110,12 +115,13 @@ export default function LedgerGrid({ month, accounts }: Props) {
     [balanceMap]
   );
 
-  // 每日总计（含继承）
+  // 每日总计（仅真实记录）
   const dailyTotals = useMemo(() => {
     return days.map((date) => {
       let total = 0;
       for (const acc of accounts) {
-        total += getInheritedBalance(acc.id, date).value;
+        const b = getBalance(acc.id, date);
+        if (b) total += b.balance;
       }
       return total;
     });
@@ -308,14 +314,15 @@ export default function LedgerGrid({ month, accounts }: Props) {
           {activities.map((act) => {
             const acc = accounts.find((a) => a.id === act.account_id);
             if (!acc) return null;
-            // 计算当前日均：使用继承余额，截止今天
+            // 计算当前日均：使用真实余额记录
             const today = new Date().toISOString().slice(0, 10);
             const relevantDays = days.filter((d) => d <= today);
             let currentAvg = 0;
             if (relevantDays.length > 0) {
-              const inherited = relevantDays.map((d) => getInheritedBalance(act.account_id, d).value);
-              const nonZero = inherited.filter((v) => v > 0);
-              currentAvg = nonZero.length > 0 ? nonZero.reduce((s, v) => s + v, 0) / nonZero.length : 0;
+              const realValues = relevantDays
+                .map((d) => getBalance(act.account_id, d)?.balance || 0)
+                .filter((v) => v > 0);
+              currentAvg = realValues.length > 0 ? realValues.reduce((s, v) => s + v, 0) / days.length : 0;
             }
             const diff = act.target_daily_avg ? currentAvg - act.target_daily_avg : 0;
             return (
@@ -404,7 +411,9 @@ export default function LedgerGrid({ month, accounts }: Props) {
                   {accounts.map((acc) => {
                     const key = `${acc.id}_${date}`;
                     const isEditing = editingKey === key;
-                    const { value, inherited } = getInheritedBalance(acc.id, date);
+                    const balance = getBalance(acc.id, date);
+                    const value = balance ? balance.balance : 0;
+                    const hasRecord = !!balance;
                     const activity = activityMap.get(acc.id);
                     const isNearTarget =
                       activity?.target_daily_avg &&
@@ -414,9 +423,9 @@ export default function LedgerGrid({ month, accounts }: Props) {
                     return (
                       <td
                         key={acc.id}
-                        className={`px-2 py-1.5 border-b border-r border-[var(--color-border)] text-right cursor-pointer whitespace-nowrap ${
+                        className={`px-2 py-1.5 border-b border-r border-[var(--color-border)] text-right cursor-pointer whitespace-nowrap transition-colors ${
                           isNearTarget ? 'bg-[var(--color-success-light)]' : ''
-                        }`}
+                        } ${!hasRecord ? 'text-[var(--color-muted-light)]' : ''}`}
                         onClick={() => !isEditing && startEdit(acc.id, date, value)}
                       >
                         {isEditing ? (
@@ -457,12 +466,8 @@ export default function LedgerGrid({ month, accounts }: Props) {
                             )}
                           </div>
                         ) : (
-                          <span
-                            className={`text-xs ${
-                              inherited ? 'text-[var(--color-muted)]' : 'text-[var(--color-foreground)]'
-                            }`}
-                          >
-                            {value > 0 ? fmt(value) : ''}
+                          <span className="text-xs text-[var(--color-foreground)]">
+                            {hasRecord ? fmt(value) : <span className="text-[var(--color-muted-light)]">—</span>}
                           </span>
                         )}
                       </td>
