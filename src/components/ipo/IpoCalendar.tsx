@@ -112,24 +112,23 @@ export default function IpoCalendar() {
               <div
                 key={dateStr}
                 onClick={() => setSelectedDate(isSelected ? null : dateStr)}
-                className={`aspect-square border-b border-r border-[var(--color-border-light)] p-1 cursor-pointer transition-colors hover:bg-[var(--color-accent-light)] ${
-                  isSelected ? 'bg-[var(--color-accent-light)] ring-1 ring-[var(--color-accent)]' : ''
-                } ${isPast ? 'opacity-40' : ''}`}
+                className={`min-h-[72px] border-b border-r border-[var(--color-border-light)] p-1.5 cursor-pointer transition-colors hover:bg-[var(--color-accent-light)] ${
+                  isSelected ? 'bg-[var(--color-accent-light)] ring-1 ring-inset ring-[var(--color-accent)]' : ''
+                } ${isPast ? 'opacity-40' : ''} ${events.length > 0 && !isPast ? 'bg-[var(--color-accent-light)]/50' : ''}`}
               >
-                <div className={`text-xs font-medium mb-0.5 ${isToday ? 'bg-[var(--color-accent)] text-white w-5 h-5 rounded-full flex items-center justify-center' : 'text-[var(--color-foreground)]'}`}>
+                <div className={`text-[11px] font-semibold mb-0.5 ${isToday ? 'bg-[var(--color-accent)] text-white w-5 h-5 rounded-full flex items-center justify-center' : 'text-[var(--color-foreground)]'}`}>
                   {date.getDate()}
                 </div>
                 {events.length > 0 && (
-                  <div className="flex flex-wrap gap-0.5">
-                    {events.slice(0, 3).map((evt, i) => (
-                      <span
-                        key={i}
-                        className={`block w-1.5 h-1.5 rounded-full ${
-                          evt.status === '进行中' ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-muted-light)]'
-                        }`}
-                        title={evt.company_name}
-                      />
+                  <div className="space-y-0.5 mt-1">
+                    {events.slice(0, 2).map((evt, i) => (
+                      <div key={i} className="text-[10px] leading-tight text-[var(--color-foreground)] truncate">
+                        {evt.company_name.length > 5 ? evt.company_name.slice(0, 5) + '…' : evt.company_name}
+                      </div>
                     ))}
+                    {events.length > 2 && (
+                      <div className="text-[9px] text-[var(--color-muted-light)]">+{events.length - 2}只</div>
+                    )}
                   </div>
                 )}
               </div>

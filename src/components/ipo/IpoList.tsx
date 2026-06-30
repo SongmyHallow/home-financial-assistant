@@ -1,89 +1,31 @@
 'use client';
 import { useState, useEffect } from 'react';
-import type { IpoListing, AccountV2 } from '@/lib/types';
-import IpoCard from './IpoCard';
+import type { IpoListing } from '@/lib/types';
 
 const MARKET_FILTERS = ['全部', '北交所', '港股'] as const;
 
 export default function IpoList() {
   const [ipos, setIpos] = useState<IpoListing[]>([]);
-  const [watched, setWatched] = useState<string[]>([]);
   const [market, setMarket] = useState<string>('全部');
   const [loading, setLoading] = useState(true);
-  const [watching, setWatching] = useState<Set<string>>(new Set());
-  const [brokerageAccounts, setBrokerageAccounts] = useState<AccountV2[]>([]);
 
   useEffect(() => {
-    const controller = new AbortController();
     async function load() {
       setLoading(true);
-      try {
-        const params = market !== '全部' ? `?market=${market}` : '';
-        const res = await fetch('/api/ipo' + params, { signal: controller.signal });
-        const data = await res.json();
-        if (Array.isArray(data)) setIpos(data);
-      } catch (err: any) {
-        if (err.name !== 'AbortError') console.error('IPO fetch failed:', err);
-      } finally {
-        setLoading(false);
-      }
+      const params = market !== '全部' ? `?market=${market}` : '';
+      const res = await fetch('/api/ipo' + params);
+      const data = await res.json();
+      if (Array.isArray(data)) setIpos(data);
+      setLoading(false);
     }
     load();
-    fetchWatched();
-    return () => controller.abort();
   }, [market]);
-
-  // 加载券商账户（is_brokerage=true）
-  useEffect(() => {
-    async function fetchBrokerageAccounts() {
-      try {
-        const res = await fetch('/api/accounts');
-        const data: AccountV2[] = await res.json();
-        if (Array.isArray(data)) {
-          setBrokerageAccounts(data.filter(a => a.is_brokerage));
-        }
-      } catch {
-        // 静默失败
-      }
-    }
-    fetchBrokerageAccounts();
-  }, []);
-
-  async function fetchWatched() {
-    const res = await fetch('/api/ipo/watch');
-    const data = await res.json();
-    if (Array.isArray(data)) setWatched(data);
-  }
-
-  async function toggleWatch(ipoId: string) {
-    if (watching.has(ipoId)) return;
-    setWatching(prev => new Set(prev).add(ipoId));
-    try {
-      const method = watched.includes(ipoId) ? 'DELETE' : 'POST';
-      await fetch('/api/ipo/watch', {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ipo_id: ipoId }),
-      });
-      await fetchWatched();
-    } finally {
-      setWatching(prev => {
-        const next = new Set(prev);
-        next.delete(ipoId);
-        return next;
-      });
-    }
-  }
 
   if (loading) {
     return (
-      <div className="space-y-3">
-        {[1, 2].map(i => (
-          <div key={i} className="bg-[var(--color-surface)] rounded-2xl p-5 border border-[var(--color-border)] animate-pulse">
-            <div className="h-4 w-20 bg-[var(--color-border)] rounded mb-3" />
-            <div className="h-5 w-40 bg-[var(--color-border)] rounded mb-2" />
-            <div className="h-3 w-24 bg-[var(--color-border-light)] rounded" />
-          </div>
+      <div className="space-y-2">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="h-8 bg-[var(--color-border-light)] rounded animate-pulse" />
         ))}
       </div>
     );
@@ -91,6 +33,7 @@ export default function IpoList() {
 
   return (
     <div>
+      {/* 市场筛选 */}
       <div className="flex gap-1.5 mb-4 bg-[var(--color-border-light)] rounded-xl p-1 w-fit">
         {MARKET_FILTERS.map(m => (
           <button
@@ -98,7 +41,7 @@ export default function IpoList() {
             onClick={() => setMarket(m)}
             className={`px-3.5 py-1.5 rounded-[10px] text-[13px] font-medium transition-all duration-150 ${
               market === m
-                ? 'bg-[var(--color-surface)] text-[var(--color-foreground)] shadow-sm'
+                ? 'bg-white text-[var(--color-foreground)] shadow-sm'
                 : 'text-[var(--color-muted)] hover:text-[var(--color-foreground)]'
             }`}
           >
@@ -109,23 +52,55 @@ export default function IpoList() {
 
       {ipos.length === 0 ? (
         <div className="text-center py-16">
-          <div className="text-4xl mb-3 opacity-30">📋</div>
-          <p className="text-[var(--color-muted)] text-sm">今日暂无新股申购</p>
+          <p className="text-[var(--color-muted)] text-sm">暂无新股数据</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {ipos.map(ipo => (
-            <IpoCard
-              key={ipo.id}
-              ipo={ipo}
-              watched={watched.includes(ipo.id)}
-              onToggleWatch={toggleWatch}
-              disabled={watching.has(ipo.id) ? 'opacity-50 pointer-events-none' : ''}
-              brokerageAccounts={brokerageAccounts}
-            />
-          ))}
+        <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] overflow-x-auto">
+          <table className="w-full text-[13px]">
+            <thead>
+              <tr className="bg-[var(--color-background)] border-b border-[var(--color-border)]">
+                <th className="px-3 py-2.5 text-left text-xs text-[var(--color-muted)] font-medium">代码</th>
+                <th className="px-3 py-2.5 text-left text-xs text-[var(--color-muted)] font-medium">简称</th>
+                <th className="px-3 py-2.5 text-right text-xs text-[var(--color-muted)] font-medium">发行价格</th>
+                <th className="px-3 py-2.5 text-right text-xs text-[var(--color-muted)] font-medium">一手资金</th>
+                <th className="px-3 py-2.5 text-right text-xs text-[var(--color-muted)] font-medium">申购日</th>
+                <th className="px-3 py-2.5 text-right text-xs text-[var(--color-muted)] font-medium">上市日</th>
+                <th className="px-3 py-2.5 text-left text-xs text-[var(--color-muted)] font-medium">行业</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ipos.map((ipo) => (
+                <tr key={ipo.id} className="border-b border-[var(--color-border-light)] hover:bg-[var(--color-surface-hover)] transition-colors">
+                  <td className="px-3 py-2.5 font-mono text-xs text-[var(--color-muted)]">{ipo.subscription_code || '—'}</td>
+                  <td className="px-3 py-2.5 font-medium">
+                    <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-[var(--color-accent-light)] text-[var(--color-accent)] mr-1.5">{ipo.market}</span>
+                    {ipo.company_name}
+                  </td>
+                  <td className="px-3 py-2.5 text-right">
+                    {ipo.price_low ? <span className="font-mono">¥{ipo.price_low}</span> : '—'}
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono">
+                    {ipo.lot_amount ? `¥${ipo.lot_amount.toLocaleString()}` : '—'}
+                  </td>
+                  <td className="px-3 py-2.5 text-right text-xs">
+                    {ipo.subscription_deadline?.slice(0, 10) || '—'}
+                  </td>
+                  <td className="px-3 py-2.5 text-right text-xs">
+                    {ipo.expected_listing_date || '—'}
+                  </td>
+                  <td className="px-3 py-2.5 text-xs text-[var(--color-muted)]">
+                    {ipo.industry || '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
+
+      <p className="text-[11px] text-[var(--color-muted-light)] mt-2 text-right">
+        数据来源：东方财富 datacenter API
+      </p>
     </div>
   );
 }
