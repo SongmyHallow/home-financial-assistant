@@ -17,7 +17,7 @@ function saveSelection(ids: string[]) {
 export default function LedgerPage() {
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [allAccounts, setAllAccounts] = useState<AccountV2[]>([]);
-  const [selectedIds, setSelectedIds] = useState<string[]>(loadSelection);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [gridKey, setGridKey] = useState(0);
   const [showPaste, setShowPaste] = useState(false);
   const [showAccountPicker, setShowAccountPicker] = useState(false);
@@ -30,6 +30,11 @@ export default function LedgerPage() {
   }, []);
 
   useEffect(() => { fetchAccounts(); }, [fetchAccounts]);
+
+  // 从 localStorage 加载选中的账户
+  useEffect(() => {
+    setSelectedIds(loadSelection());
+  }, []);
 
   // 关闭下拉
   useEffect(() => {
