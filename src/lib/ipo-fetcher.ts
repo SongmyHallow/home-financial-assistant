@@ -61,10 +61,39 @@ export async function fetchAllIpos() {
   let inserted = 0;
   for (const ipo of all) {
     if (!ipo.subscription_code || !ipo.company_name) continue;
-    const { error } = await supabase
+
+    // 先查是否存在
+    const { data: existing } = await supabase
       .from('ipo_listings')
-      .upsert(
-        {
+      .select('id')
+      .eq('subscription_code', ipo.subscription_code)
+      .maybeSingle();
+
+    if (existing) {
+      // 更新
+      const { error } = await supabase
+        .from('ipo_listings')
+        .update({
+          market: ipo.market || '北交所',
+          company_name: ipo.company_name,
+          price_low: ipo.price_low,
+          price_high: ipo.price_high,
+          lot_size: ipo.lot_size || 100,
+          lot_amount: ipo.lot_amount,
+          sponsor: ipo.sponsor,
+          industry: ipo.industry,
+          subscription_deadline: ipo.subscription_deadline,
+          expected_listing_date: ipo.expected_listing_date,
+          status: '进行中',
+        })
+        .eq('id', existing.id);
+      if (!error) inserted++;
+      else console.error('IPO update error:', error);
+    } else {
+      // 插入
+      const { error } = await supabase
+        .from('ipo_listings')
+        .insert({
           market: ipo.market || '北交所',
           company_name: ipo.company_name,
           subscription_code: ipo.subscription_code,
@@ -77,11 +106,10 @@ export async function fetchAllIpos() {
           subscription_deadline: ipo.subscription_deadline,
           expected_listing_date: ipo.expected_listing_date,
           status: '进行中',
-        },
-        { onConflict: 'subscription_code' }
-      );
-    if (!error) inserted++;
-    else console.error('IPO upsert error:', error);
+        });
+      if (!error) inserted++;
+      else console.error('IPO insert error:', error);
+    }
   }
 
   // 标记已过截止日期的为"已截止"
