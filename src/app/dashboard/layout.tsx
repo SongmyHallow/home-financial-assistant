@@ -1,5 +1,9 @@
+import { redirect } from 'next/navigation';
+import { isAuthenticated } from '@/lib/auth';
 import Layout from '@/components/Layout';
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const authed = await isAuthenticated();
+  if (!authed) redirect('/login');
   return <Layout>{children}</Layout>;
 }
