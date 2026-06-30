@@ -350,7 +350,7 @@ export default function LedgerGrid({ month }: Props) {
                         ) : (
                           <span
                             className={`text-xs ${
-                              inherited ? 'text-[var(--color-muted)]' : 'text-gray-800'
+                              inherited ? 'text-[var(--color-muted)]' : 'text-[var(--color-foreground)]'
                             }`}
                           >
                             {value > 0 ? fmt(value) : ''}
