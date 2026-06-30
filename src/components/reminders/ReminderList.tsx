@@ -64,7 +64,7 @@ export default function ReminderList({ prefill }: { prefill?: Record<string, str
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">🔔 提醒管理</h2>
+        <h3 className="font-semibold text-base flex items-center gap-2"><span>📝</span><span>自定义提醒</span></h3>
         <button onClick={() => {
           if (prefill && Object.keys(prefill).length > 0) {
             setEditing({ template_type: (prefill.template || '自定义') as TemplateType });
