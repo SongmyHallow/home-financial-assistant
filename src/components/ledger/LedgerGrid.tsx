@@ -415,7 +415,7 @@ export default function LedgerGrid({ month, accounts }: Props) {
                     return (
                       <td
                         key={acc.id}
-                        className={`px-2 py-1.5 border-b border-r border-[var(--color-border)] text-right cursor-pointer whitespace-nowrap transition-colors ${
+                        className={`px-2 py-1.5 border-b border-r border-[var(--color-border)] text-right cursor-pointer min-w-[90px] ${
                           isNearTarget ? 'bg-[var(--color-success-light)]' : ''
                         } ${!hasRecord ? 'text-[var(--color-muted-light)]' : ''}`}
                         onClick={() => !isEditing && startEdit(acc.id, date, value)}
