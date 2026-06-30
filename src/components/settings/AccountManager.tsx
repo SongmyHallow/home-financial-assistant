@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import type { Account, AccountV2 } from '@/lib/types';
+import type { AccountV2 } from '@/lib/types';
 
 const ACCOUNT_TYPES = ['储蓄卡', '券商', '信用卡'] as const;
 
@@ -54,7 +54,7 @@ export default function AccountManager() {
                 {acc.currency && acc.currency !== 'CNY' && <span className="bg-yellow-100 text-yellow-700 px-1 rounded">{acc.currency}</span>}
                 {acc.is_brokerage && <span className="bg-blue-100 text-blue-700 px-1 rounded">券商</span>}
                 {acc.transfer_method && <span>{acc.transfer_method === 'ukey' ? 'U盾' : acc.transfer_method === 'mobile' ? '手机银行' : '柜台'}</span>}
-                {acc.daily_limit && <span>日限{acc.daily_limit.toLocaleString()}</span>}
+                {acc.daily_limit != null && <span>日限{acc.daily_limit.toLocaleString()}</span>}
                 {acc.transfer_hours && <span>{acc.transfer_hours}</span>}
               </div>
             </div>
