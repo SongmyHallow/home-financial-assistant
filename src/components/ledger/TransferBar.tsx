@@ -191,7 +191,7 @@ export default function TransferBar({ accounts, month, onTransferComplete }: Pro
           className={`text-xs px-2 py-1 rounded ${
             msg.type === 'success'
               ? 'bg-[var(--color-success-light)] text-[var(--color-success)]'
-              : 'bg-red-50 text-[var(--color-danger)]'
+              : 'bg-[var(--color-danger-light)] text-[var(--color-danger)]'
           }`}
         >
           {msg.text}

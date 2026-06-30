@@ -30,6 +30,7 @@ export default function LedgerGrid({ month }: Props) {
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const skipNextBlurRef = useRef(false);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -119,9 +120,10 @@ export default function LedgerGrid({ month }: Props) {
   // 汇总数据
   const summary = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
-    const nonZeroDays = dailyTotals.filter((v) => v > 0 && days[dailyTotals.indexOf(v)] <= today);
+    const nonZeroDays = dailyTotals.filter((_, i) => dailyTotals[i] > 0 && days[i] <= today);
+    const monthlyTotal = nonZeroDays.reduce((s, v) => s + v, 0);
     const monthlyAvg = nonZeroDays.length > 0
-      ? nonZeroDays.reduce((s, v) => s + v, 0) / nonZeroDays.length
+      ? monthlyTotal / nonZeroDays.length
       : 0;
 
     // 找最低基准日均
@@ -134,7 +136,7 @@ export default function LedgerGrid({ month }: Props) {
     const highestTarget = targetAvgs.length > 0 ? Math.max(...targetAvgs) : 0;
     const vsTarget = highestTarget > 0 ? (monthlyAvg / highestTarget) * 100 : null;
 
-    return { monthlyAvg, assetImprovement, vsTarget };
+    return { monthlyTotal, monthlyAvg, assetImprovement, vsTarget };
   }, [dailyTotals, days, activities]);
 
   // 保存单元格
@@ -334,9 +336,15 @@ export default function LedgerGrid({ month }: Props) {
                             onChange={(e) => setEditValue(e.target.value)}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') saveCell(acc.id, date, editValue);
-                              if (e.key === 'Escape') setEditingKey(null);
+                              if (e.key === 'Escape') {
+                                skipNextBlurRef.current = true;
+                                setEditingKey(null);
+                              }
                             }}
-                            onBlur={() => saveCell(acc.id, date, editValue)}
+                            onBlur={() => {
+                              if (skipNextBlurRef.current) { skipNextBlurRef.current = false; return; }
+                              saveCell(acc.id, date, editValue);
+                            }}
                             className="w-24 text-right border border-[var(--color-accent)] rounded px-1 py-0.5 text-xs outline-none bg-white"
                           />
                         ) : (
@@ -366,6 +374,19 @@ export default function LedgerGrid({ month }: Props) {
             })}
 
             {/* 汇总行 */}
+            <tr className="bg-[var(--color-accent-subtle)] font-medium">
+              <td className="sticky left-0 z-10 bg-[var(--color-accent-subtle)] px-3 py-2 border-t border-r border-[var(--color-border)] text-xs whitespace-nowrap">
+                本月累计
+              </td>
+              <td
+                colSpan={accounts.length}
+                className="px-3 py-2 border-t border-r border-[var(--color-border)]"
+              />
+              <td className="px-3 py-2 border-t border-r border-[var(--color-border)] text-right text-xs whitespace-nowrap">
+                {summary.monthlyTotal > 0 ? fmt(summary.monthlyTotal) : '-'}
+              </td>
+              <td className="px-3 py-2 border-t border-[var(--color-border)]" />
+            </tr>
             <tr className="bg-[var(--color-accent-subtle)] font-medium">
               <td className="sticky left-0 z-10 bg-[var(--color-accent-subtle)] px-3 py-2 border-t border-r border-[var(--color-border)] text-xs whitespace-nowrap">
                 本月日均
