@@ -13,10 +13,13 @@ export default function TransferBar({ accounts, month, onTransferComplete }: Pro
   const [toId, setToId] = useState('');
   const [amount, setAmount] = useState('');
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [msg, setMsg] = useState<{ type: 'success' | 'error' | 'warning'; text: string } | null>(null);
 
   const fromAccount = accounts.find((a) => a.id === fromId);
   const toAccount = accounts.find((a) => a.id === toId);
+
+  // 当前月份（YYYY-MM）
+  const currentYM = new Date().toISOString().slice(0, 7);
 
   // 获取账户当天余额（不传则为 0）
   async function fetchCurrentBalance(accountId: string): Promise<number> {
@@ -61,7 +64,10 @@ export default function TransferBar({ accounts, month, onTransferComplete }: Pro
         fetchCurrentBalance(toId),
       ]);
 
-      await Promise.all([
+      // 记录转账前的余额，用于补偿回写
+      const fromBalance = fromBal;
+
+      const [fromRes, toRes] = await Promise.all([
         fetch('/api/balances', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -86,6 +92,18 @@ export default function TransferBar({ accounts, month, onTransferComplete }: Pro
         }),
       ]);
 
+      if (!fromRes.ok || !toRes.ok) {
+        // 若 from 成功但 to 失败，补偿回写恢复 from 账户原余额
+        if (fromRes.ok && !toRes.ok) {
+          await fetch('/api/balances', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ account_id: fromId, date: today, balance: fromBalance, is_manual: true }),
+          });
+        }
+        throw new Error('转账失败');
+      }
+
       setMsg({ type: 'success', text: `转账成功：¥${num.toLocaleString()}` });
       setAmount('');
       setFromId('');
@@ -100,6 +118,13 @@ export default function TransferBar({ accounts, month, onTransferComplete }: Pro
 
   return (
     <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] p-3 space-y-3">
+      {/* 历史月份警告 */}
+      {month !== currentYM && (
+        <div className="text-xs px-2 py-1 rounded bg-[var(--color-accent-light)] text-[var(--color-accent)]">
+          当前视图为历史月份，转账将记录到今天（{new Date().toISOString().slice(0, 10)}）
+        </div>
+      )}
+
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-medium text-[var(--color-muted)]">快捷转账</span>
 
@@ -191,6 +216,8 @@ export default function TransferBar({ accounts, month, onTransferComplete }: Pro
           className={`text-xs px-2 py-1 rounded ${
             msg.type === 'success'
               ? 'bg-[var(--color-success-light)] text-[var(--color-success)]'
+              : msg.type === 'warning'
+              ? 'bg-[var(--color-accent-light)] text-[var(--color-accent)]'
               : 'bg-[var(--color-danger-light)] text-[var(--color-danger)]'
           }`}
         >
@@ -200,3 +227,4 @@ export default function TransferBar({ accounts, month, onTransferComplete }: Pro
     </div>
   );
 }
+

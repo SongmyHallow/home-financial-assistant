@@ -4,6 +4,7 @@ import type { AccountV2, Activity, DailyBalance } from '@/lib/types';
 
 interface Props {
   month: string; // "2026-07"
+  accounts: AccountV2[];
 }
 
 // 枚举月份中所有日期 YYYY-MM-DD
@@ -21,31 +22,28 @@ function fmt(n: number) {
   return n.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
-export default function LedgerGrid({ month }: Props) {
-  const [accounts, setAccounts] = useState<AccountV2[]>([]);
+export default function LedgerGrid({ month, accounts }: Props) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [balances, setBalances] = useState<DailyBalance[]>([]);
   const [loading, setLoading] = useState(true);
   // 编辑状态: key = `${accountId}_${date}`
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
+  const [cellError, setCellError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const skipNextBlurRef = useRef(false);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [accRes, actRes, balRes] = await Promise.all([
-        fetch('/api/accounts'),
+      const [actRes, balRes] = await Promise.all([
         fetch(`/api/activities?month=${month}`),
         fetch(`/api/balances?month=${month}`),
       ]);
-      const [accData, actData, balData] = await Promise.all([
-        accRes.json(),
+      const [actData, balData] = await Promise.all([
         actRes.json(),
         balRes.json(),
       ]);
-      if (Array.isArray(accData)) setAccounts(accData);
       if (Array.isArray(actData)) setActivities(actData);
       if (Array.isArray(balData)) setBalances(balData);
     } finally {
@@ -65,12 +63,18 @@ export default function LedgerGrid({ month }: Props) {
     }
   }, [editingKey]);
 
-  // 二维 Map: accountId → (date → DailyBalance)
+  // 二维 Map: accountId → { entries: Map<date, DailyBalance>, sortedDates: string[] }
   const balanceMap = useMemo(() => {
-    const map = new Map<string, Map<string, DailyBalance>>();
+    const map = new Map<string, { entries: Map<string, DailyBalance>; sortedDates: string[] }>();
     for (const b of balances) {
-      if (!map.has(b.account_id)) map.set(b.account_id, new Map());
-      map.get(b.account_id)!.set(b.date, b);
+      if (!map.has(b.account_id)) {
+        map.set(b.account_id, { entries: new Map(), sortedDates: [] });
+      }
+      map.get(b.account_id)!.entries.set(b.date, b);
+    }
+    // 一次性排序，避免在 getInheritedBalance 中重复排序
+    for (const accData of map.values()) {
+      accData.sortedDates = Array.from(accData.entries.keys()).sort();
     }
     return map;
   }, [balances]);
@@ -89,15 +93,14 @@ export default function LedgerGrid({ month }: Props) {
   // 计算继承余额：对于每个 accountId + date，返回该日期当天或最近之前的余额值
   const getInheritedBalance = useCallback(
     (accountId: string, date: string): { value: number; inherited: boolean } => {
-      const accMap = balanceMap.get(accountId);
-      if (!accMap) return { value: 0, inherited: true };
+      const accData = balanceMap.get(accountId);
+      if (!accData) return { value: 0, inherited: true };
       // 精确匹配
-      if (accMap.has(date)) return { value: accMap.get(date)!.balance, inherited: false };
-      // 往前找最近一天
-      const sorted = Array.from(accMap.keys()).sort();
+      if (accData.entries.has(date)) return { value: accData.entries.get(date)!.balance, inherited: false };
+      // 往前找最近一天（使用预排序的 sortedDates）
       let last: number | null = null;
-      for (const d of sorted) {
-        if (d < date) last = accMap.get(d)!.balance;
+      for (const d of accData.sortedDates) {
+        if (d < date) last = accData.entries.get(d)!.balance;
         else break;
       }
       if (last !== null) return { value: last, inherited: true };
@@ -147,6 +150,9 @@ export default function LedgerGrid({ month }: Props) {
       return;
     }
 
+    // 保存之前的状态，以便回滚
+    const previousBalances = balances;
+
     // 乐观更新
     const newBalance: DailyBalance = {
       id: `temp_${accountId}_${date}`,
@@ -182,9 +188,15 @@ export default function LedgerGrid({ month }: Props) {
             b.account_id === accountId && b.date === date ? saved : b
           )
         );
+      } else {
+        // API 返回错误（如 400/500）
+        throw new Error(saved.error ?? '保存失败');
       }
     } catch {
-      // 静默失败，数据已乐观更新
+      // 回滚到保存前的状态
+      setBalances(previousBalances);
+      setCellError('保存失败，请重试');
+      setTimeout(() => setCellError(null), 3000);
     }
   }
 
@@ -208,23 +220,25 @@ export default function LedgerGrid({ month }: Props) {
 
   return (
     <div className="space-y-4">
+      {/* 保存错误提示 */}
+      {cellError && (
+        <div className="text-[var(--color-danger)] text-xs mb-2">{cellError}</div>
+      )}
+
       {/* 活动栏 */}
       {activities.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {activities.map((act) => {
             const acc = accounts.find((a) => a.id === act.account_id);
             if (!acc) return null;
-            // 计算当前日均：截止今天
+            // 计算当前日均：使用继承余额，截止今天
             const today = new Date().toISOString().slice(0, 10);
-            const accMap = balanceMap.get(act.account_id);
+            const relevantDays = days.filter((d) => d <= today);
             let currentAvg = 0;
-            if (accMap) {
-              const entries = Array.from(accMap.entries())
-                .filter(([d]) => d >= `${month}-01` && d <= today)
-                .sort(([a], [b]) => a.localeCompare(b));
-              if (entries.length > 0) {
-                currentAvg = entries.reduce((s, [, b]) => s + b.balance, 0) / entries.length;
-              }
+            if (relevantDays.length > 0) {
+              const inherited = relevantDays.map((d) => getInheritedBalance(act.account_id, d).value);
+              const nonZero = inherited.filter((v) => v > 0);
+              currentAvg = nonZero.length > 0 ? nonZero.reduce((s, v) => s + v, 0) / nonZero.length : 0;
             }
             const diff = act.target_daily_avg ? currentAvg - act.target_daily_avg : 0;
             return (
@@ -295,7 +309,7 @@ export default function LedgerGrid({ month }: Props) {
               // 收集备注
               const notes: string[] = [];
               for (const acc of accounts) {
-                const b = balanceMap.get(acc.id)?.get(date);
+                const b = balanceMap.get(acc.id)?.entries.get(date);
                 if (b?.note) notes.push(b.note);
               }
 
@@ -392,12 +406,14 @@ export default function LedgerGrid({ month }: Props) {
                 本月日均
               </td>
               {accounts.map((acc) => {
-                // 各账户日均
-                const accMap = balanceMap.get(acc.id);
+                // 各账户日均：使用继承余额，与网格显示保持一致
+                const today = new Date().toISOString().slice(0, 10);
+                const relevantDays = days.filter((d) => d <= today);
                 let avg = 0;
-                if (accMap) {
-                  const vals = Array.from(accMap.values()).filter((b) => b.balance > 0);
-                  avg = vals.length > 0 ? vals.reduce((s, b) => s + b.balance, 0) / vals.length : 0;
+                if (relevantDays.length > 0) {
+                  const inherited = relevantDays.map((d) => getInheritedBalance(acc.id, d).value);
+                  const nonZero = inherited.filter((v) => v > 0);
+                  avg = nonZero.length > 0 ? nonZero.reduce((s, v) => s + v, 0) / nonZero.length : 0;
                 }
                 return (
                   <td key={acc.id} className="px-3 py-2 border-t border-r border-[var(--color-border)] text-right text-xs whitespace-nowrap">
@@ -463,3 +479,4 @@ export default function LedgerGrid({ month }: Props) {
     </div>
   );
 }
+

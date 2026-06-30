@@ -45,7 +45,7 @@ export default function LedgerPage() {
       />
 
       {/* 台账主体 */}
-      <LedgerGrid key={`${month}-${gridKey}`} month={month} />
+      <LedgerGrid key={`${month}-${gridKey}`} month={month} accounts={accounts} />
     </div>
   );
 }

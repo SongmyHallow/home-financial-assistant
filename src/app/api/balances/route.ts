@@ -24,15 +24,24 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
+
+  const { account_id, date, balance } = body;
+  if (!account_id || !date || balance === undefined || balance === null) {
+    return NextResponse.json({ error: '缺少必填字段: account_id, date, balance' }, { status: 400 });
+  }
+  if (typeof balance !== 'number' || isNaN(balance)) {
+    return NextResponse.json({ error: 'balance 必须为数字' }, { status: 400 });
+  }
+
   const supabase = createServiceClient();
 
   const { data, error } = await supabase
     .from('daily_balances')
     .upsert(
       {
-        account_id: body.account_id,
-        date: body.date,
-        balance: body.balance,
+        account_id,
+        date,
+        balance,
         is_manual: body.is_manual ?? true,
         note: body.note ?? '',
       },
