@@ -1,0 +1,40 @@
+# Vercel 环境变量 - 复制到 Vercel Dashboard
+
+> 打开 https://vercel.com/songmyhallows-projects/home-financial-assistant/settings/environment-variables
+> 逐一添加，全部选 Production 环境，点 Save
+
+---
+
+Key: ACCESS_CODE
+Value: d90finance2026
+Type: Sensitive (默认)
+
+---
+
+Key: NEXT_PUBLIC_SUPABASE_URL
+Value: https://wqlnrdwqphnstadggwgb.supabase.co
+
+---
+
+Key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+Value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndxbG5yZHdxcGhuc3RhZGdnd2diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NTUwMjgsImV4cCI6MjA5ODMzMTAyOH0.avQZveta3fUyV9CTPkm6L4uDbPZUh_bdGquyqi7LR-A
+
+---
+
+Key: SUPABASE_SERVICE_ROLE_KEY
+Value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndxbG5yZHdxcGhuc3RhZGdnd2diIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Mjc1NTAyOCwiZXhwIjoyMDk4MzMxMDI4fQ.NjdJoKINrO42HjuaDeZppBFn0Nk98A--Rh36p6GA7qs
+
+---
+
+Key: PUSHPLUS_TOKEN
+Value: placeholder
+
+---
+
+Key: OPENAI_API_KEY
+Value: sk-placeholder
+
+---
+
+Key: CRON_SECRET
+Value: d90cron2026
