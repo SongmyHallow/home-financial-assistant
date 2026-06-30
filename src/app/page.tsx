@@ -3,5 +3,5 @@ import { isAuthenticated } from '@/lib/auth';
 
 export default async function Home() {
   const authed = await isAuthenticated();
-  redirect(authed ? '/dashboard/ipo' : '/login');
+  redirect(authed ? '/dashboard/overview' : '/login');
 }

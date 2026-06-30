@@ -3,9 +3,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const tabs = [
+  { path: '/dashboard/overview', label: '看板', icon: '📊' },
+  { path: '/dashboard/ledger', label: '台账', icon: '📈' },
   { path: '/dashboard/ipo', label: 'IPO', icon: '🏦' },
   { path: '/dashboard/reminders', label: '提醒', icon: '🔔' },
-  { path: '/dashboard/ledger', label: '流水', icon: '📒' },
   { path: '/dashboard/settings', label: '设置', icon: '⚙' },
 ];
 
