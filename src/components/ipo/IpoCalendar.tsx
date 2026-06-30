@@ -37,19 +37,24 @@ export default function IpoCalendar() {
   const days = useMemo(() => getDaysInMonth(year, month), [year, month]);
   const startDay = days[0]?.getDay() || 0;
 
-  // Group IPOs by date
+  // Group IPOs by date with event type
   const ipoByDate = useMemo(() => {
-    const map = new Map<string, IpoListing[]>();
+    const map = new Map<string, { ipo: IpoListing; type: string }[]>();
     for (const ipo of ipos) {
       if (ipo.subscription_deadline) {
         const d = ipo.subscription_deadline.slice(0, 10);
         if (!map.has(d)) map.set(d, []);
-        map.get(d)!.push(ipo);
+        map.get(d)!.push({ ipo, type: '申购' });
+      }
+      if (ipo.ballot_date) {
+        const d = ipo.ballot_date;
+        if (!map.has(d)) map.set(d, []);
+        map.get(d)!.push({ ipo, type: '发行结果公告' });
       }
       if (ipo.expected_listing_date) {
         const d = ipo.expected_listing_date;
         if (!map.has(d)) map.set(d, []);
-        if (!map.get(d)!.some((x) => x.id === ipo.id)) map.get(d)!.push(ipo);
+        map.get(d)!.push({ ipo, type: '上市' });
       }
     }
     return map;
@@ -122,14 +127,18 @@ export default function IpoCalendar() {
                   {date.getDate()}
                 </div>
                 {events.length > 0 && (
-                  <div className="space-y-0.5 mt-1">
-                    {events.slice(0, 2).map((evt, i) => (
-                      <div key={i} className="text-[10px] leading-tight text-[var(--color-foreground)] truncate">
-                        {evt.company_name.length > 5 ? evt.company_name.slice(0, 5) + '…' : evt.company_name}
-                      </div>
-                    ))}
+                  <div className="space-y-0.5 mt-0.5">
+                    {events.slice(0, 2).map((evt, i) => {
+                      const colors: Record<string, string> = { '申购': 'bg-[var(--color-accent-light)] text-[var(--color-accent)]', '发行结果公告': 'bg-amber-50 text-amber-700', '上市': 'bg-blue-50 text-blue-700' };
+                      return (
+                        <div key={i} className="text-[9px] leading-tight truncate flex items-center gap-0.5">
+                          <span className={`text-[8px] px-1 rounded ${colors[evt.type] || ''}`}>{evt.type}</span>
+                          <span className="text-[var(--color-foreground)]">{evt.ipo.company_name.length > 4 ? evt.ipo.company_name.slice(0, 4) + '…' : evt.ipo.company_name}</span>
+                        </div>
+                      );
+                    })}
                     {events.length > 2 && (
-                      <div className="text-[9px] text-[var(--color-muted-light)]">+{events.length - 2}只</div>
+                      <div className="text-[8px] text-[var(--color-muted-light)]">+{events.length - 2}条</div>
                     )}
                   </div>
                 )}
@@ -143,36 +152,39 @@ export default function IpoCalendar() {
       {selectedDate && (
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-[var(--color-muted)]">
-            {selectedDate} {selectedIpos.length > 0 ? `· ${selectedIpos.length} 只新股` : ''}
+            {selectedDate} · {selectedIpos.length} 条事件
           </h3>
           {selectedIpos.length > 0 ? (
             <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] overflow-x-auto">
               <table className="w-full text-[13px]">
                 <thead>
                   <tr className="bg-[var(--color-background)] border-b border-[var(--color-border)]">
+                    <th className="px-3 py-2.5 text-left text-xs text-[var(--color-muted)] font-medium">类型</th>
                     <th className="px-3 py-2.5 text-left text-xs text-[var(--color-muted)] font-medium">代码</th>
                     <th className="px-3 py-2.5 text-left text-xs text-[var(--color-muted)] font-medium">简称</th>
                     <th className="px-3 py-2.5 text-right text-xs text-[var(--color-muted)] font-medium">发行价格</th>
-                    <th className="px-3 py-2.5 text-right text-xs text-[var(--color-muted)] font-medium">发行市盈率</th>
-                    <th className="px-3 py-2.5 text-right text-xs text-[var(--color-muted)] font-medium">申购日</th>
-                    <th className="px-3 py-2.5 text-right text-xs text-[var(--color-muted)] font-medium">上市日</th>
+                    <th className="px-3 py-2.5 text-center text-xs text-[var(--color-muted)] font-medium">详情</th>
                     <th className="px-3 py-2.5 text-center text-xs text-[var(--color-muted)] font-medium">操作</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedIpos.map((ipo, i) => (
-                    <tr key={ipo.id} className="border-b border-[var(--color-border-light)] hover:bg-[var(--color-surface-hover)]">
-                      <td className="px-3 py-2.5 font-mono text-[var(--color-muted)]">{ipo.subscription_code || '—'}</td>
+                  {selectedIpos.map((evt, i) => {
+                    const ipo = evt.ipo;
+                    const typeColors: Record<string, string> = { '申购': 'bg-[var(--color-accent-light)] text-[var(--color-accent)]', '发行结果公告': 'bg-amber-50 text-amber-700', '上市': 'bg-blue-50 text-blue-700' };
+                    return (
+                      <tr key={`${ipo.id}-${evt.type}`} className="border-b border-[var(--color-border-light)] hover:bg-[var(--color-surface-hover)]">
+                      <td className="px-3 py-2.5">
+                        <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${typeColors[evt.type] || ''}`}>{evt.type}</span>
+                      </td>
+                      <td className="px-3 py-2.5 font-mono text-xs text-[var(--color-muted)]">{ipo.subscription_code || '—'}</td>
                       <td className="px-3 py-2.5 font-medium">{ipo.company_name}</td>
-                      <td className="px-3 py-2.5 text-right">
+                      <td className="px-3 py-2.5 text-right font-mono">
                         {ipo.price_low ? `¥${ipo.price_low}` : '—'}
                       </td>
-                      <td className="px-3 py-2.5 text-right">—</td>
-                      <td className="px-3 py-2.5 text-right">
-                        {ipo.subscription_deadline?.slice(0, 10) || '—'}
-                      </td>
-                      <td className="px-3 py-2.5 text-right">
-                        {ipo.expected_listing_date || '—'}
+                      <td className="px-2 py-2 text-center">
+                        {ipo.subscription_code ? (
+                          <a href={`https://www.bse.cn/newshare/company/${ipo.subscription_code}.html`} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[var(--color-accent)] hover:underline whitespace-nowrap">北交所 ↗</a>
+                        ) : '—'}
                       </td>
                       <td className="px-2 py-2 text-center">
                         <button
@@ -192,7 +204,8 @@ export default function IpoCalendar() {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

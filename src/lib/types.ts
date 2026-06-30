@@ -59,6 +59,7 @@ export interface IpoListing {
   industry: string;
   subscription_deadline: string;
   expected_listing_date: string;
+  ballot_date?: string | null;
   status: IpoStatus;
   bse_url?: string;
   created_at: string;

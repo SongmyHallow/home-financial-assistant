@@ -80,7 +80,8 @@ export async function fetchAllIpos() {
       sponsor: ipo.sponsor,
       industry: ipo.industry,
       subscription_deadline: ipo.subscription_deadline,
-      expected_listing_date: ipo.expected_listing_date,
+      expected_listing_date: ipo.expected_listing_date || null,
+      ballot_date: (ipo as any).ballot_date || null,
       status: new Date(ipo.subscription_deadline || '') > new Date() ? '进行中' : '已截止',
     };
 
