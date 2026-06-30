@@ -1,14 +1,24 @@
-const CACHE_NAME = 'hfa-v1';
-const urlsToCache = ['/', '/dashboard/ipo', '/dashboard/reminders', '/dashboard/ledger', '/dashboard/settings'];
+const CACHE_NAME = 'hfa-v2';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache)));
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then(names => Promise.all(names.map(name => caches.delete(name)))).then(() => self.clients.claim())
+  );
 });
 
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then(response => response || fetch(event.request))
-  );
+  // 只缓存静态资源，不拦截页面导航和 API 请求
+  const url = new URL(event.request.url);
+  if (url.pathname.startsWith('/_next/') || url.pathname.startsWith('/icons/') || event.request.destination === 'image') {
+    event.respondWith(
+      caches.match(event.request).then(response => response || fetch(event.request))
+    );
+  }
+  // 其他请求直接走网络，不缓存
 });
 
 self.addEventListener('push', (event) => {

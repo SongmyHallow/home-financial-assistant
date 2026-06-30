@@ -77,3 +77,60 @@ export interface ParsedReminder {
   template_type: TemplateType;
   confidence: number;
 }
+
+// ===== V2 新增 =====
+
+export interface Activity {
+  id: string;
+  account_id: string;
+  month: string;
+  base_daily_avg: number;
+  target_daily_avg: number | null;
+  signup_deadline: string | null;
+  start_date: string;
+  end_date: string;
+  pass_condition: string;
+  reward: number;
+  note: string;
+  created_at: string;
+  account?: Account;
+}
+
+export interface DailyBalance {
+  id: string;
+  account_id: string;
+  date: string;
+  balance: number;
+  is_manual: boolean;
+  note: string;
+  created_at: string;
+  account?: Account;
+}
+
+export interface IpoAllocation {
+  id: string;
+  ipo_id: string;
+  account_id: string;
+  amount: number;
+  created_at: string;
+}
+
+export interface HkSubscription {
+  id: string;
+  ipo_id: string;
+  account_id: string;
+  subscribed: boolean;
+  note: string;
+  created_at: string;
+}
+
+// 扩展 Account 类型
+export interface AccountV2 extends Account {
+  currency: string;
+  transfer_method: string | null;
+  daily_limit: number | null;
+  per_transfer_limit: number | null;
+  transfer_hours: string | null;
+  transfer_notes: string | null;
+  is_brokerage: boolean;
+}

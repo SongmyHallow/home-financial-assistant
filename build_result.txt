@@ -1,0 +1,45 @@
+
+> home-financial-assistant@0.1.0 build
+> next build
+
+▲ Next.js 16.2.9 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 3.5s
+  Running TypeScript ...
+  Finished TypeScript in 2.1s ...
+  Collecting page data using 21 workers ...
+  Generating static pages using 21 workers (0/20) ...
+  Generating static pages using 21 workers (5/20) 
+  Generating static pages using 21 workers (10/20) 
+  Generating static pages using 21 workers (15/20) 
+✓ Generating static pages using 21 workers (20/20) in 606ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ƒ /api/accounts
+├ ƒ /api/auth
+├ ƒ /api/export
+├ ƒ /api/ipo
+├ ƒ /api/ipo/fetch
+├ ƒ /api/ipo/watch
+├ ƒ /api/push/cron
+├ ƒ /api/push/test
+├ ƒ /api/reminders
+├ ƒ /api/reminders/parse
+├ ƒ /api/transactions
+├ ƒ /dashboard/ipo
+├ ƒ /dashboard/ledger
+├ ƒ /dashboard/reminders
+├ ƒ /dashboard/settings
+└ ○ /login
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
