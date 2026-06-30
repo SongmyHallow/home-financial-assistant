@@ -68,6 +68,7 @@ export default function IpoList() {
                 <th className="px-3 py-2.5 text-right text-xs text-[var(--color-muted)] font-medium">申购日</th>
                 <th className="px-3 py-2.5 text-right text-xs text-[var(--color-muted)] font-medium">上市日</th>
                 <th className="px-3 py-2.5 text-left text-xs text-[var(--color-muted)] font-medium">行业</th>
+                <th className="px-3 py-2.5 text-center text-xs text-[var(--color-muted)] font-medium">详情</th>
                 <th className="px-3 py-2.5 text-center text-xs text-[var(--color-muted)] font-medium">操作</th>
               </tr>
             </thead>
@@ -76,8 +77,13 @@ export default function IpoList() {
                 <tr key={ipo.id} className="border-b border-[var(--color-border-light)] hover:bg-[var(--color-surface-hover)] transition-colors">
                   <td className="px-3 py-2.5 font-mono text-xs text-[var(--color-muted)]">{ipo.subscription_code || '—'}</td>
                   <td className="px-3 py-2.5 font-medium">
-                    <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-[var(--color-accent-light)] text-[var(--color-accent)] mr-1.5">{ipo.market}</span>
+                    {ipo.market === '北交所' && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-accent-light)] text-[var(--color-accent)] mr-1.5">申购</span>
+                    )}
                     {ipo.company_name}
+                    {ipo.expected_listing_date && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 ml-1">上市{ipo.expected_listing_date.slice(5)}</span>
+                    )}
                   </td>
                   <td className="px-3 py-2.5 text-right">
                     {ipo.price_low ? <span className="font-mono">¥{ipo.price_low}</span> : '—'}
@@ -93,6 +99,18 @@ export default function IpoList() {
                   </td>
                   <td className="px-3 py-2.5 text-xs text-[var(--color-muted)]">
                     {ipo.industry || '—'}
+                  </td>
+                  <td className="px-2 py-2 text-center">
+                    {ipo.subscription_code ? (
+                      <a
+                        href={`https://www.bse.cn/newshare/company/${ipo.subscription_code}.html`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] text-[var(--color-accent)] hover:underline whitespace-nowrap"
+                      >
+                        北交所 ↗
+                      </a>
+                    ) : '—'}
                   </td>
                   <td className="px-2 py-2 text-center">
                     <button

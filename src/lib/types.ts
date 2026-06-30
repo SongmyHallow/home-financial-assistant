@@ -60,6 +60,7 @@ export interface IpoListing {
   subscription_deadline: string;
   expected_listing_date: string;
   status: IpoStatus;
+  bse_url?: string;
   created_at: string;
 }
 
