@@ -1,7 +1,10 @@
 import OpenAI from 'openai';
 import type { ParsedReminder, TemplateType } from './types';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: 'https://api.deepseek.com',
+});
 
 export async function parseNaturalLanguage(text: string): Promise<ParsedReminder> {
   const now = new Date();
@@ -25,7 +28,7 @@ export async function parseNaturalLanguage(text: string): Promise<ParsedReminder
 {"title":"...","description":"...","trigger_time":"...","template_type":"...","confidence":0.9}`;
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: 'deepseek-chat',
     messages: [{ role: 'user', content: prompt }],
     temperature: 0,
   });
