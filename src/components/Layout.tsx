@@ -9,6 +9,7 @@ const tabs = [
   { path: '/dashboard/ipo', label: 'IPO 管理', icon: '🏦' },
   { path: '/dashboard/reminders', label: '提醒中心', icon: '🔔' },
   { path: '/dashboard/settings', label: '系统设置', icon: '⚙' },
+  { path: '/dashboard/changelog', label: '更新日志', icon: '📋' },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
