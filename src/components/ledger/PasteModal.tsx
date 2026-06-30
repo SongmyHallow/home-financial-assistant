@@ -13,6 +13,7 @@ export default function PasteModal({ accounts, month, onComplete, onClose }: Pro
   const [raw, setRaw] = useState('');
   const [parsing, setParsing] = useState(false);
   const [preview, setPreview] = useState<{ date: string; values: Record<string, number> }[] | null>(null);
+  const [detectedMonth, setDetectedMonth] = useState('');
   const [colMap, setColMap] = useState<(string | undefined)[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -22,64 +23,77 @@ export default function PasteModal({ accounts, month, onComplete, onClose }: Pro
     const lines = raw.trim().split('\n').filter((l) => l.trim());
     if (lines.length < 2) { setError('至少需要标题行和一行数据'); return; }
 
-    // 第一行是标题
-    const headers = lines[0].split('\t').map((h) => h.trim());
+    // 智能识别分隔符：先用 tab，如果列数太少则用连续空格的规则
+    function splitColumns(line: string): string[] {
+      const tabSplit = line.split('\t');
+      if (tabSplit.length >= 3) return tabSplit.map((s) => s.trim());
+      // 按 2 个以上连续空格分割
+      return line.split(/\s{2,}/).map((s) => s.trim());
+    }
+
+    // 找标题行：跳过纯数字或日期的行，第一个包含中文的行作为标题
+    let headerIdx = 0;
+    for (let i = 0; i < Math.min(lines.length, 3); i++) {
+      if (/[一-龥]/.test(lines[i]) && !/^\d{4}[\/\-]/.test(lines[i].trim())) {
+        headerIdx = i;
+        break;
+      }
+    }
+
+    const headers = splitColumns(lines[headerIdx]);
     const mapping: (string | undefined)[] = [];
     const unmatched: string[] = [];
 
     for (let i = 0; i < headers.length; i++) {
       const h = headers[i];
+      if (!h) continue;
       const match = accounts.find(
         (a) => a.name === h || h.includes(a.name) || a.name.includes(h)
       );
       if (match) mapping[i] = match.id;
-      else if (h && h !== '日期' && h !== '星期' && h !== '备注' && h !== '总计' && !h.includes('星期')) {
+      else if (h && h !== '日期' && h !== '星期' && h !== '备注' && h !== '总计' && !/^\d+月$/.test(h)) {
         unmatched.push(h);
       }
     }
 
     if (mapping.filter(Boolean).length === 0) {
-      setError(`未匹配到任何账户列。标题: ${headers.join(', ')}`);
+      setError(`未匹配到任何账户列。标题: ${headers.join(', ')}. 请确认已在设置中添加了同名的银行账户。`);
       return;
     }
 
     setColMap(mapping);
 
-    // 解析数据行
+    // 解析数据行，同时自动检测月份
     const rows: { date: string; values: Record<string, number> }[] = [];
-    const monthPrefix = month + '-';
+    let detectedMonth = month;
 
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split('\t');
-      // 第一列可能是日期
+    for (let i = headerIdx + 1; i < lines.length; i++) {
+      const cols = splitColumns(lines[i]);
       let dateStr = cols[0]?.trim();
       if (!dateStr) continue;
 
-      // 尝试解析各种日期格式
+      // 解析日期
       let date = '';
-      if (/^\d{1,2}[\/\-\.]\d{1,2}$/.test(dateStr)) {
-        // "6/1" 或 "6-1" 格式
-        const [m, d] = dateStr.split(/[\/\-\.]/).map(Number);
-        date = `${month}-${String(d).padStart(2, '0')}`;
-      } else if (/^\d{1,2}$/.test(dateStr)) {
-        // 纯数字 "1" 表示当月第1天
+      if (/^\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}$/.test(dateStr)) {
+        const parts = dateStr.split(/[\/\-]/);
+        date = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+        if (detectedMonth === month) setDetectedMonth(`${parts[0]}-${parts[1].padStart(2, '0')}`);
+      } else if (/^\d{1,2}[\/\-]\d{1,2}$/.test(dateStr)) {
+        const [m, d] = dateStr.split(/[\/\-]/).map(Number);
+        date = `${month.split('-')[0]}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      } else if (/^\d{1,2}$/.test(dateStr) && parseInt(dateStr) <= 31) {
         date = `${month}-${dateStr.padStart(2, '0')}`;
-      } else if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-        date = dateStr;
-      } else if (dateStr.includes('-')) {
-        // 可能已经是完整日期
-        const parts = dateStr.split('-');
-        if (parts.length === 3) date = dateStr;
-        else if (parts.length === 2) date = `${month}-${parts[1].padStart(2, '0')}`;
       }
 
-      if (!date || !date.startsWith(monthPrefix)) continue;
+      if (!date || !date.startsWith(detectedMonth)) continue;
 
       const values: Record<string, number> = {};
       for (let j = 0; j < cols.length; j++) {
         const accId = mapping[j];
         if (!accId) continue;
-        const val = parseFloat(cols[j]?.replace(/[,，¥￥\s]/g, ''));
+        // 去除 *、逗号、¥￥符号、空格后解析数字
+        const cleaned = cols[j]?.replace(/[*¥￥,\s]/g, '');
+        const val = parseFloat(cleaned);
         if (!isNaN(val)) values[accId] = val;
       }
 
