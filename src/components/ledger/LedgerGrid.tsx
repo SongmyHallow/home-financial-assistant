@@ -30,6 +30,7 @@ export default function LedgerGrid({ month, accounts }: Props) {
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
   const [cellError, setCellError] = useState<string | null>(null);
+  const [inheriting, setInheriting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const skipNextBlurRef = useRef(false);
 
@@ -211,6 +212,52 @@ export default function LedgerGrid({ month, accounts }: Props) {
     }
   }
 
+  // 一键沿用昨日：把今天所有账户填上继承值
+  const today = new Date().toISOString().slice(0, 10);
+  async function inheritToday() {
+    if (inheriting) return;
+    setInheriting(true);
+    try {
+      for (const acc of accounts) {
+        const { value } = getInheritedBalance(acc.id, today);
+        if (value > 0) {
+          await fetch('/api/balances', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ account_id: acc.id, date: today, balance: value, is_manual: false }),
+          });
+        }
+      }
+      await fetchAll();
+    } catch {
+      setCellError('沿用失败，请重试');
+      setTimeout(() => setCellError(null), 3000);
+    } finally {
+      setInheriting(false);
+    }
+  }
+
+  // 检查今天是否已有手动录入的数据
+  const todayManualFilled = useMemo(() => {
+    for (const acc of accounts) {
+      const b = balanceMap.get(acc.id)?.entries.get(today);
+      if (b) return true; // 至少有一个账户今天有记录
+    }
+    return false;
+  }, [accounts, balanceMap, today]);
+
+  // 昨天有数据吗（用于判断是否显示沿用按钮）
+  const yesterdayData = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    const yest = d.toISOString().slice(0, 10);
+    for (const acc of accounts) {
+      const val = getInheritedBalance(acc.id, yest).value;
+      if (val > 0) return true;
+    }
+    return false;
+  }, [accounts, getInheritedBalance]);
+
   function startEdit(accountId: string, date: string, currentValue: number) {
     const key = `${accountId}_${date}`;
     setEditingKey(key);
@@ -234,6 +281,25 @@ export default function LedgerGrid({ month, accounts }: Props) {
       {/* 保存错误提示 */}
       {cellError && (
         <div className="text-[var(--color-danger)] text-xs mb-2">{cellError}</div>
+      )}
+
+      {/* 一键沿用昨日 */}
+      {!todayManualFilled && yesterdayData && (
+        <div className="bg-[var(--color-accent-light)] border border-[var(--color-accent)]/30 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-[13px] text-[var(--color-accent)] font-medium">
+            <span>📋</span>
+            <span>
+              今日（{new Date(today).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })}）尚无数据
+            </span>
+          </div>
+          <button
+            onClick={inheritToday}
+            disabled={inheriting}
+            className="shrink-0 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-xs font-medium px-4 py-2 rounded-xl transition-all duration-150 disabled:opacity-50"
+          >
+            {inheriting ? '处理中...' : '一键沿用昨日余额'}
+          </button>
+        </div>
       )}
 
       {/* 活动栏 */}
