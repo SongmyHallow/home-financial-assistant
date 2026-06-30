@@ -150,10 +150,17 @@ export default function LedgerGrid({ month, accounts }: Props) {
       return;
     }
 
-    // 保存之前的状态，以便回滚
-    const previousBalances = balances;
+    // Fix 2: 若单元格是继承值（无真实记录），且用户未修改，则不 PIN 保存
+    const realRecord = balanceMap.get(accountId)?.entries.get(date);
+    if (!realRecord) {
+      const { value: inheritedVal } = getInheritedBalance(accountId, date);
+      if (inheritedVal === num) {
+        setEditingKey(null);
+        return;
+      }
+    }
 
-    // 乐观更新
+    // 乐观更新（Fix 1: 使用函数式更新，不捕获闭包快照）
     const newBalance: DailyBalance = {
       id: `temp_${accountId}_${date}`,
       account_id: accountId,
@@ -181,21 +188,25 @@ export default function LedgerGrid({ month, accounts }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ account_id: accountId, date, balance: num, is_manual: true }),
       });
-      const saved = await res.json();
-      if (saved.id) {
-        setBalances((prev) =>
-          prev.map((b) =>
-            b.account_id === accountId && b.date === date ? saved : b
-          )
-        );
-      } else {
-        // API 返回错误（如 400/500）
-        throw new Error(saved.error ?? '保存失败');
-      }
+      if (!res.ok) throw new Error('Save failed');
+      await fetchAll(); // Fix 1: 从服务器刷新获取真实状态
     } catch {
-      // 回滚到保存前的状态
-      setBalances(previousBalances);
+      // Fix 1: 出错时也从服务器重新加载，不回滚到可能已过期的快照
+      await fetchAll();
       setCellError('保存失败，请重试');
+      setTimeout(() => setCellError(null), 3000);
+    }
+  }
+
+  // 删除单元格真实记录（Fix 3）
+  async function deleteCell(id: string) {
+    setEditingKey(null);
+    try {
+      const res = await fetch(`/api/balances?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Delete failed');
+      await fetchAll();
+    } catch {
+      setCellError('删除失败，请重试');
       setTimeout(() => setCellError(null), 3000);
     }
   }
@@ -343,24 +354,42 @@ export default function LedgerGrid({ month, accounts }: Props) {
                         onClick={() => !isEditing && startEdit(acc.id, date, value)}
                       >
                         {isEditing ? (
-                          <input
-                            ref={inputRef}
-                            type="number"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') saveCell(acc.id, date, editValue);
-                              if (e.key === 'Escape') {
-                                skipNextBlurRef.current = true;
-                                setEditingKey(null);
-                              }
-                            }}
-                            onBlur={() => {
-                              if (skipNextBlurRef.current) { skipNextBlurRef.current = false; return; }
-                              saveCell(acc.id, date, editValue);
-                            }}
-                            className="w-24 text-right border border-[var(--color-accent)] rounded px-1 py-0.5 text-xs outline-none bg-white"
-                          />
+                          <div className="flex items-center gap-1 justify-end">
+                            <input
+                              ref={inputRef}
+                              type="number"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveCell(acc.id, date, editValue);
+                                if (e.key === 'Escape') {
+                                  skipNextBlurRef.current = true;
+                                  setEditingKey(null);
+                                }
+                              }}
+                              onBlur={() => {
+                                if (skipNextBlurRef.current) { skipNextBlurRef.current = false; return; }
+                                saveCell(acc.id, date, editValue);
+                              }}
+                              className="w-24 text-right border border-[var(--color-accent)] rounded px-1 py-0.5 text-xs outline-none bg-white"
+                            />
+                            {/* Fix 3: 删除按钮，仅当单元格有真实记录时显示 */}
+                            {balanceMap.get(acc.id)?.entries.get(date)?.id && (
+                              <button
+                                type="button"
+                                title="清空此记录"
+                                onMouseDown={(e) => {
+                                  // 阻止 blur 触发 saveCell
+                                  e.preventDefault();
+                                  skipNextBlurRef.current = true;
+                                  deleteCell(balanceMap.get(acc.id)!.entries.get(date)!.id);
+                                }}
+                                className="text-[var(--color-danger)] text-xs px-1 py-0.5 rounded hover:bg-[var(--color-danger-light)] leading-none"
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
                         ) : (
                           <span
                             className={`text-xs ${
