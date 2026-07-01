@@ -156,8 +156,8 @@ export default function LedgerGrid({ month, accounts }: Props) {
       const dayIdx = days.indexOf(daysToToday[i]);
       return s + (dailyTotals[dayIdx] || 0);
     }, 0);
-    const monthlyAvg = daysToToday.length > 0
-      ? monthlyTotal / daysToToday.length
+    const monthlyAvg = days.length > 0
+      ? monthlyTotal / days.length
       : 0;
     return { monthlyTotal, monthlyAvg };
   }, [dailyTotals, days]);
