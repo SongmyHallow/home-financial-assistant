@@ -537,7 +537,7 @@ export default function LedgerGrid({ month, accounts }: Props) {
                 }
                 const avg = count > 0 ? sum / days.length : 0;
                 return (
-                  <td key={acc.id} className="px-3 py-2 border-t border-r border-[var(--color-border)] text-right text-xs whitespace-nowrap">
+                  <td key={acc.id} className={`px-3 py-2 border-t border-r border-[var(--color-border)] text-right text-xs whitespace-nowrap ${acc.is_brokerage ? 'text-blue-600 font-medium' : ''}`}>
                     {avg > 0 ? fmt(avg) : '-'}
                   </td>
                 );
@@ -564,7 +564,7 @@ export default function LedgerGrid({ month, accounts }: Props) {
                 const base = act?.base_daily_avg || 0;
                 const improvement = avg - base;
                 return (
-                  <td key={acc.id} className="px-3 py-2 border-t border-r border-[var(--color-border)] text-right text-xs whitespace-nowrap">
+                  <td key={acc.id} className={`px-3 py-2 border-t border-r border-[var(--color-border)] text-right text-xs whitespace-nowrap ${acc.is_brokerage ? 'text-blue-600' : ''}`}>
                     {base > 0 ? (
                       <span className={improvement >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'}>
                         {improvement >= 0 ? '+' : ''}{fmt(improvement)}
@@ -593,7 +593,7 @@ export default function LedgerGrid({ month, accounts }: Props) {
                 const target = act?.target_daily_avg;
                 const gap = target ? avg - target : 0;
                 return (
-                  <td key={acc.id} className="px-3 py-2 border-t border-r border-[var(--color-border)] text-right text-xs whitespace-nowrap">
+                  <td key={acc.id} className={`px-3 py-2 border-t border-r border-[var(--color-border)] text-right text-xs whitespace-nowrap ${acc.is_brokerage ? 'text-blue-600' : ''}`}>
                     {target ? (
                       <span className={gap >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'}>
                         {gap >= 0 ? '+' : ''}{fmt(gap)}
