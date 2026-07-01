@@ -370,6 +370,36 @@ export default function LedgerGrid({ month, accounts }: Props) {
     return () => window.removeEventListener('mouseup', handleUp);
   }, []);
 
+  // Delete/Backspace 清空选区
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selStart && selEnd) {
+        const { accs, dates } = getSelectionRange();
+        if (accs.length === 0 || dates.length === 0) return;
+        if (!confirm(`清空 ${accs.length}×${dates.length} 区域的所有记录？`)) return;
+        let cleared = 0;
+        Promise.all(
+          accs.flatMap(acc =>
+            dates.map(async date => {
+              const rec = balanceMap.get(acc.id)?.entries.get(date);
+              if (rec?.id) {
+                await fetch(`/api/balances?id=${encodeURIComponent(rec.id)}`, { method: 'DELETE' });
+                cleared++;
+              }
+            })
+          )
+        ).then(() => {
+          setPasteMsg(`✅ 已清空 ${cleared} 个记录`);
+          setTimeout(() => setPasteMsg(''), 3000);
+          fetchAll();
+          setSelStart(null); setSelEnd(null);
+        });
+      }
+    }
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [selStart, selEnd, accounts, days]);
+
   if (loading) {
     return (
       <div className="text-center py-12 text-[var(--color-muted)]">加载中...</div>
