@@ -98,7 +98,7 @@ export default function Cockpit() {
       </div>
 
       {/* 概览卡片 */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-4">
           <p className="text-[11px] text-[var(--color-muted)]">操作笔数</p>
           <p className="text-2xl font-semibold mt-1">{ops.length}</p>

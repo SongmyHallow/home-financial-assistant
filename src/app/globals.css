@@ -33,9 +33,30 @@ body {
 
 /* 移动端适配 */
 @media (max-width: 640px) {
-  .hide-on-mobile {
-    display: none !important;
-  }
+  .hide-on-mobile { display: none !important; }
+
+  /* 通用移动端字号缩小 */
+  html { font-size: 14px; }
+
+  /* 表格文字适应 */
+  table { font-size: 11px; }
+  th, td { padding: 4px 6px !important; }
+
+  /* 按钮适配 */
+  button { white-space: nowrap; }
+
+  /* 卡片间距缩小 */
+  .space-y-6 > * + * { margin-top: 0.75rem; }
+  .space-y-4 > * + * { margin-top: 0.5rem; }
+
+  /* 弹窗适配 */
+  .w-80 { width: calc(100vw - 2rem) !important; }
+
+  /* 输入框防止缩放 */
+  input, select, textarea { font-size: 16px !important; }
+
+  /* 表格容器滚动 */
+  .overflow-x-auto { -webkit-overflow-scrolling: touch; }
 }
 
 /* PWA standalone 模式顶部安全区 */
