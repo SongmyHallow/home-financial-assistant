@@ -26,7 +26,6 @@ export default function LedgerGrid({ month, accounts }: Props) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [balances, setBalances] = useState<DailyBalance[]>([]);
   const [loading, setLoading] = useState(true);
-  // 编辑状态: key = `${accountId}_${date}`
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
   const [editAccountName, setEditAccountName] = useState('');
@@ -34,7 +33,12 @@ export default function LedgerGrid({ month, accounts }: Props) {
   const [editHasRecord, setEditHasRecord] = useState(false);
   const [cellError, setCellError] = useState<string | null>(null);
   const [inheriting, setInheriting] = useState(false);
+  const [selStart, setSelStart] = useState<{accId:string,date:string} | null>(null);
+  const [selEnd, setSelEnd] = useState<{accId:string,date:string} | null>(null);
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [pasteMsg, setPasteMsg] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
   const skipNextBlurRef = useRef(false);
 
   const fetchAll = useCallback(async () => {
@@ -284,6 +288,88 @@ export default function LedgerGrid({ month, accounts }: Props) {
     setTimeout(() => inputRef.current?.focus(), 50);
   }
 
+  // 判断单元格是否在选区内
+  function isInSelection(accId: string, date: string) {
+    if (!selStart || !selEnd) return false;
+    const accIdx = (id: string) => accounts.findIndex(a => a.id === id);
+    const a1 = Math.min(accIdx(selStart.accId), accIdx(selEnd.accId));
+    const a2 = Math.max(accIdx(selStart.accId), accIdx(selEnd.accId));
+    const d1 = days.indexOf(selStart.date);
+    const d2 = days.indexOf(selEnd.date);
+    const di = days.indexOf(date);
+    const ai = accIdx(accId);
+    return ai >= a1 && ai <= a2 && di >= Math.min(d1,d2) && di <= Math.max(d1,d2);
+  }
+
+  // 获取选区内的账户和日期列表
+  function getSelectionRange() {
+    if (!selStart || !selEnd) return { accs: [], dates: [] };
+    const accIdx = (id: string) => accounts.findIndex(a => a.id === id);
+    const a1 = Math.min(accIdx(selStart.accId), accIdx(selEnd.accId));
+    const a2 = Math.max(accIdx(selStart.accId), accIdx(selEnd.accId));
+    const d1 = days.indexOf(selStart.date);
+    const d2 = days.indexOf(selEnd.date);
+    const startD = Math.min(d1, d2);
+    const endD = Math.max(d1, d2);
+    return {
+      accs: accounts.slice(a1, a2 + 1),
+      dates: days.slice(startD, endD + 1),
+    };
+  }
+
+  // Ctrl+V 粘贴
+  useEffect(() => {
+    function handlePaste(e: ClipboardEvent) {
+      const raw = e.clipboardData?.getData('text');
+      if (!raw || !selStart) return;
+      const lines = raw.trim().split(/\r?\n/).filter(l => l.trim());
+      if (lines.length === 0) return;
+
+      const { accs, dates } = getSelectionRange();
+      if (accs.length === 0 || dates.length === 0) return;
+
+      const rows = lines.map(l => l.split('\t').map(c => c.replace(/[,，¥￥*\s]/g, '')));
+      const rowCount = Math.min(rows.length, dates.length);
+      const colCount = Math.min(rows[0]?.length || 0, accs.length);
+
+      e.preventDefault();
+      setPasteMsg(`正在粘贴 ${rowCount}×${colCount} ...`);
+      let done = 0;
+      Promise.all(
+        Array.from({length: rowCount}, (_, r) =>
+          Array.from({length: colCount}, (_, c) => {
+            const val = parseFloat(rows[r]?.[c]);
+            if (!isNaN(val)) {
+              return fetch('/api/balances', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({account_id: accs[c].id, date: dates[r], balance: val, is_manual: true}),
+              }).then(() => { done++; });
+            }
+            return Promise.resolve();
+          })
+        ).flat()
+      ).then(() => {
+        setPasteMsg(`✅ 已粘贴 ${done} 个单元格`);
+        setTimeout(() => setPasteMsg(''), 3000);
+        fetchAll();
+        setSelStart(null); setSelEnd(null);
+      }).catch(() => {
+        setPasteMsg('❌ 粘贴失败');
+        setTimeout(() => setPasteMsg(''), 3000);
+      });
+    }
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [selStart, selEnd, accounts, days]);
+
+  // 全局 mouseup 停止选区
+  useEffect(() => {
+    function handleUp() { setIsSelecting(false); }
+    window.addEventListener('mouseup', handleUp);
+    return () => window.removeEventListener('mouseup', handleUp);
+  }, []);
+
   if (loading) {
     return (
       <div className="text-center py-12 text-[var(--color-muted)]">加载中...</div>
@@ -319,6 +405,18 @@ export default function LedgerGrid({ month, accounts }: Props) {
           >
             {inheriting ? '处理中...' : '一键沿用昨日余额'}
           </button>
+        </div>
+      )}
+
+      {/* 选区提示 */}
+      {pasteMsg && (
+        <div className="bg-[var(--color-accent-light)] border border-[var(--color-accent)]/30 rounded-lg px-4 py-2 text-xs text-[var(--color-accent)] text-center">
+          {pasteMsg}
+        </div>
+      )}
+      {selStart && !pasteMsg && (
+        <div className="text-xs text-center text-[var(--color-muted)]">
+          已选中区域 · Ctrl+V 粘贴 · 点击单元格开始编辑
         </div>
       )}
 
@@ -442,12 +540,31 @@ export default function LedgerGrid({ month, accounts }: Props) {
                     return (
                       <td
                         key={acc.id}
-                        className={`px-2 py-1.5 border-b border-r border-[var(--color-border)] text-right cursor-pointer min-w-[90px] ${
+                        className={`px-2 py-1.5 border-b border-r border-[var(--color-border)] text-right cursor-pointer min-w-[90px] select-none ${
                           isNearTarget ? 'bg-[var(--color-success-light)]' : ''
                         } ${!hasRecord ? 'text-[var(--color-muted-light)]' : ''} ${
                           acc.is_brokerage && hasRecord ? 'text-blue-600 font-medium' : ''
-                        }`}
-                        onClick={() => startEdit(acc.id, date, value, acc.name, hasRecord)}
+                        } ${isInSelection(acc.id, date) ? 'bg-blue-100 outline outline-2 outline-blue-400 outline-offset-[-2px]' : ''}`}
+                        onMouseDown={(e) => {
+                          if (e.button !== 0) return;
+                          setSelStart({accId: acc.id, date});
+                          setSelEnd({accId: acc.id, date});
+                          setIsSelecting(true);
+                        }}
+                        onMouseEnter={() => {
+                          if (isSelecting && selStart) {
+                            setSelEnd({accId: acc.id, date});
+                          }
+                        }}
+                        onMouseUp={() => {
+                          if (isSelecting) {
+                            setIsSelecting(false);
+                            // 如果只是单击（没拖动），打开编辑
+                            if (selStart?.accId === acc.id && selStart?.date === date && selEnd?.accId === acc.id && selEnd?.date === date) {
+                              startEdit(acc.id, date, value, acc.name, hasRecord);
+                            }
+                          }
+                        }}
                       >
                         <span className={`text-xs ${hasRecord && acc.is_brokerage ? 'text-blue-600 font-medium' : 'text-[var(--color-foreground)]'} ${!hasRecord ? 'text-[var(--color-muted-light)]' : ''}`}>
                           {hasRecord ? fmt(value) : '—'}
