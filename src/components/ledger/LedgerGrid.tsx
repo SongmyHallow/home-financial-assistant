@@ -37,16 +37,30 @@ export default function LedgerGrid({ month, accounts }: Props) {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [actRes, balRes] = await Promise.all([
+      // 计算上月最后 3 天（跨月沿用需要）
+      const [y, m] = month.split('-').map(Number);
+      const prevM = m === 1 ? 12 : m - 1;
+      const prevY = m === 1 ? y - 1 : y;
+      const prevMonth = `${prevY}-${String(prevM).padStart(2, '0')}`;
+
+      const [actRes, balRes, prevBalRes] = await Promise.all([
         fetch(`/api/activities?month=${month}`),
         fetch(`/api/balances?month=${month}`),
+        fetch(`/api/balances?month=${prevMonth}`),
       ]);
-      const [actData, balData] = await Promise.all([
-        actRes.json(),
-        balRes.json(),
+      const [actData, balData, prevBalData] = await Promise.all([
+        actRes.json(), balRes.json(), prevBalRes.json(),
       ]);
       if (Array.isArray(actData)) setActivities(actData);
-      if (Array.isArray(balData)) setBalances(balData);
+      // 合并当月和上月余额（上月仅取最后 3 天用于跨月继承）
+      const allBals = Array.isArray(balData) ? [...balData] : [];
+      if (Array.isArray(prevBalData)) {
+        const lastDays = prevBalData
+          .filter((b: any) => b.date >= `${prevMonth}-28`)
+          .map((b: any) => ({ ...b, date: b.date })); // keep original date
+        allBals.push(...lastDays);
+      }
+      setBalances(allBals);
     } finally {
       setLoading(false);
     }
