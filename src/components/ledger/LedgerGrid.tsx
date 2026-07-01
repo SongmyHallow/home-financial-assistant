@@ -29,6 +29,9 @@ export default function LedgerGrid({ month, accounts }: Props) {
   // 编辑状态: key = `${accountId}_${date}`
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
+  const [editAccountName, setEditAccountName] = useState('');
+  const [editDateLabel, setEditDateLabel] = useState('');
+  const [editHasRecord, setEditHasRecord] = useState(false);
   const [cellError, setCellError] = useState<string | null>(null);
   const [inheriting, setInheriting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -270,10 +273,15 @@ export default function LedgerGrid({ month, accounts }: Props) {
     return false;
   }, [accounts, getInheritedBalance]);
 
-  function startEdit(accountId: string, date: string, currentValue: number) {
+  function startEdit(accountId: string, date: string, currentValue: number, accountName: string, hasRecord: boolean) {
     const key = `${accountId}_${date}`;
     setEditingKey(key);
     setEditValue(String(currentValue || ''));
+    setEditAccountName(accountName);
+    setEditDateLabel(`${date.slice(5)} 周${['日','一','二','三','四','五','六'][new Date(date).getDay()]}`);
+    setEditHasRecord(hasRecord);
+    // focus after render
+    setTimeout(() => inputRef.current?.focus(), 50);
   }
 
   if (loading) {
@@ -439,58 +447,11 @@ export default function LedgerGrid({ month, accounts }: Props) {
                         } ${!hasRecord ? 'text-[var(--color-muted-light)]' : ''} ${
                           acc.is_brokerage && hasRecord ? 'text-blue-600 font-medium' : ''
                         }`}
-                        onClick={() => !isEditing && startEdit(acc.id, date, value)}
+                        onClick={() => startEdit(acc.id, date, value, acc.name, hasRecord)}
                       >
-                        {isEditing ? (
-                          <div className="flex items-center gap-1 justify-end">
-                            <input
-                              ref={inputRef}
-                              type="number"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') saveCell(acc.id, date, editValue);
-                                if (e.key === 'Escape') setEditingKey(null);
-                              }}
-                              className="w-24 text-right border border-[var(--color-accent)] rounded px-1 py-0.5 text-xs outline-none bg-white"
-                            />
-                            <button
-                              type="button"
-                              title="保存"
-                              onMouseDown={(e) => { e.preventDefault(); saveCell(acc.id, date, editValue); }}
-                              className="text-[var(--color-success)] text-xs px-1 py-0.5 rounded hover:bg-[var(--color-success-light)] leading-none font-bold"
-                            >
-                              ✓
-                            </button>
-                            <button
-                              type="button"
-                              title="取消"
-                              onMouseDown={(e) => { e.preventDefault(); setEditingKey(null); }}
-                              className="text-[var(--color-muted-light)] text-xs px-1 py-0.5 rounded hover:bg-[var(--color-surface-hover)] leading-none"
-                            >
-                              ✗
-                            </button>
-                            {/* 删除按钮，仅当单元格有真实记录时显示 */}
-                            {balanceMap.get(acc.id)?.entries.get(date)?.id && (
-                              <button
-                                type="button"
-                                title="清空此记录"
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  skipNextBlurRef.current = true;
-                                  deleteCell(balanceMap.get(acc.id)!.entries.get(date)!.id);
-                                }}
-                                className="text-[var(--color-danger)] text-xs px-1 py-0.5 rounded hover:bg-[var(--color-danger-light)] leading-none"
-                              >
-                                ×
-                              </button>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-[var(--color-foreground)]">
-                            {hasRecord ? fmt(value) : <span className="text-[var(--color-muted-light)]">—</span>}
-                          </span>
-                        )}
+                        <span className={`text-xs ${hasRecord && acc.is_brokerage ? 'text-blue-600 font-medium' : 'text-[var(--color-foreground)]'} ${!hasRecord ? 'text-[var(--color-muted-light)]' : ''}`}>
+                          {hasRecord ? fmt(value) : '—'}
+                        </span>
                       </td>
                     );
                   })}
@@ -614,6 +575,72 @@ export default function LedgerGrid({ month, accounts }: Props) {
         💡 资产总计用于核验总金额是否正确。如果填报正确，本月总金额不应有太大变化（资金仅在不同账户间转移）。
         如有增减，请在备注中注明原因。
       </p>
+
+      {/* 悬浮编辑弹窗 */}
+      {editingKey && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20" onClick={() => setEditingKey(null)}>
+          <div
+            className="bg-[var(--color-surface)] rounded-2xl shadow-xl p-6 w-80 mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-xs text-[var(--color-muted)] mb-1">{editAccountName}</p>
+            <p className="text-sm font-semibold mb-4">{editDateLabel}</p>
+
+            <div className="mb-4">
+              <label className="block text-[11px] text-[var(--color-muted)] mb-1">余额</label>
+              <input
+                ref={inputRef}
+                type="number"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const [accId, dt] = editingKey.split('_');
+                    saveCell(accId, dt, editValue);
+                  }
+                  if (e.key === 'Escape') setEditingKey(null);
+                }}
+                className="w-full text-lg font-semibold text-center py-3 border-2 border-[var(--color-accent)] rounded-xl outline-none bg-white"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  const [accId, dt] = editingKey.split('_');
+                  saveCell(accId, dt, editValue);
+                }}
+                className="flex-1 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-medium py-2.5 rounded-xl text-sm"
+              >
+                确认保存
+              </button>
+              <button
+                onClick={() => setEditingKey(null)}
+                className="flex-1 border border-[var(--color-border)] text-[var(--color-muted)] py-2.5 rounded-xl text-sm hover:bg-[var(--color-surface-hover)]"
+              >
+                取消
+              </button>
+            </div>
+
+            {editHasRecord && (
+              <button
+                onClick={() => {
+                  const [accId, dt] = editingKey.split('_');
+                  const record = balanceMap.get(accId)?.entries.get(dt);
+                  if (record?.id) {
+                    deleteCell(record.id);
+                    setEditingKey(null);
+                  }
+                }}
+                className="w-full mt-2 text-[var(--color-danger)] text-sm py-2 hover:bg-[var(--color-danger-light)] rounded-lg transition-colors"
+              >
+                清除此记录
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
