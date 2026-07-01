@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 
 const tabs = [
-  { path: '/dashboard/overview', label: '资产看板', icon: '📊' },
+  { path: '/dashboard/overview', label: '驾驶舱', icon: '📊' },
   { path: '/dashboard/ledger', label: '资产台账', icon: '📈' },
   { path: '/dashboard/ipo', label: 'IPO 管理', icon: '🏦' },
   { path: '/dashboard/reminders', label: '提醒中心', icon: '🔔' },

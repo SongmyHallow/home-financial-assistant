@@ -126,6 +126,23 @@ export interface HkSubscription {
   created_at: string;
 }
 
+// ===== 操作收益 =====
+export interface Operation {
+  id: string;
+  month: string;
+  start_date: string;
+  end_date: string;
+  source: string;
+  operation_type: string;
+  amount: number;
+  daily_rate: number | null;
+  profit: number | null;
+  days: number;
+  total_profit: number;
+  note: string;
+  created_at: string;
+}
+
 // 扩展 Account 类型
 export interface AccountV2 extends Account {
   currency: string;
